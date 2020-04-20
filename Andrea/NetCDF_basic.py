@@ -20,7 +20,7 @@ import datetime as dt
 #==============================================================================
 
 sub = "CHL" 
-nc_path = "C:/Users/andre/OneDrive/Desktop/TUD/Mathematical Data Science/Project/Data_WQ/MetO-NWS-BIO-dm-"+ sub+ ".nc"
+nc_path = "C:/Users/andre/OneDrive/Desktop/TUD/Mathematical Data Science/Project/Water2/Andrea/MetO-NWS-BIO-dm-"+ sub + ".nc"
 dataset = Dataset(nc_path)
 
 

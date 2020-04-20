@@ -41,6 +41,16 @@ for i in range(4):
 for i in range(4):
     datasets[i].close()
 
+matrix = np.zeros((data[0].shape[0], data[0].shape[1], data[0].shape[2], 4))
+matrix[:,:,:,0] = data[0]
+matrix[:,:,:,1] = np.asarray(data[1])
+matrix[:,:,:,2] = np.asarray(data[2])
+matrix[:,:,:,3] = np.asarray(data[3])
 
+lons_lats = np.zeros((lons.shape[0], lons.shape[1], 2))
+lons_lats[:,:,0] = np.asarray(lons)
+lons_lats[:,:,1] = np.asarray(lats)
 
+np.save('model_data.npy', matrix)
 
+print(np.abs(matrix).min())
