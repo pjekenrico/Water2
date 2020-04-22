@@ -78,8 +78,8 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
     and the labels organized saptially.
 
     matrix:     the data through time or the data at a particular timestep
-    timestep:   if None the matrix is already given at a single timestep
-                if not None is the timestep to cluster
+    timestep:   if None: the matrix is already given at a single timestep
+                if not None: it is the timestep to cluster
     mode:       clustering mode (kmeans, dbscan, hierarchical)
     n_clusters: for kmeans and hierarchical, is the number of clusters
     dbscan_eps: for dbscan, the maximal neighboring distance
@@ -151,9 +151,14 @@ def clustering(data=None, n_clusters=10, mode='kmeans', metric='euclidean', dbsc
     print("Finished Clustering.")
     return clusterer
 
+
 # Loading already saved data (see load_data.py)
-matrix = np.load("model_data.npy")
-lons_lats = np.load("lons_lats.npy")
+print("Collecting data")
+with np.load('model_data.npz') as m:
+    matrix = m['matrix']
+with np.load('lons_lats.npz') as ll:
+    lons_lats = ll['lons_lats']
+print("Finished collecting data")
 
 # Clustering variables
 tstep = 100
@@ -164,10 +169,10 @@ dbscan_eps = 4
 # Uncomment one of the following to cluster
 
 # Clustering with kmeans
-cl, labels = timestep_clustering(
-    matrix=matrix, timestep=tstep, mode="kmeans", n_clusters=n_clusters)
-# cl, labels = single_chemical_clustering(
-#     matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
+# cl, labels = timestep_clustering(
+#     matrix=matrix, timestep=tstep, mode="kmeans", n_clusters=n_clusters)
+cl, labels = single_chemical_clustering(
+    matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
 
 # Clustering with hierarchical/agglomeratative
 # cl, labels = timestep_clustering(matrix=matrix, timestep=tstep, mode="hierarchical", n_clusters=n_clusters)
