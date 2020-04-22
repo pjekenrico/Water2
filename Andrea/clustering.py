@@ -16,6 +16,10 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
     matrix:     the data through time or the data at a particular timestep
     chemical:   if None the matrix is already given for the selected chemical
                 if not None is the index of chemical to cluster
+                0: CHL
+                1: DOXY
+                2: NITR
+                3: PHOS
     mode:       clustering mode (kmeans, dbscan, hierarchical)
     n_clusters: for kmeans and hierarchical, is the number of clusters
     dbscan_eps: for dbscan, the maximal neighboring distance
