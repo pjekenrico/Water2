@@ -8,49 +8,181 @@ import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 
-def clustering(data=None, n_clusters=10, mode="kmeans"):
+def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
+    '''
+    This function clusters spatially the data of a certain chemical through time and returns the clustered data
+    and the labels organized saptially.
+
+    matrix:     the data through time or the data at a particular timestep
+    chemical:   if None the matrix is already given for the selected chemical
+                if not None is the index of chemical to cluster
+    mode:       clustering mode (kmeans, dbscan, hierarchical)
+    n_clusters: for kmeans and hierarchical, is the number of clusters
+    dbscan_eps: for dbscan, the maximal neighboring distance
+    metric:     for dbscan, the metric used for distance calculations
+    '''
+    data = None
+    if chemical == None:
+        data = matrix
+    elif chemical >= matrix.shape[3]:
+        print("Chemical Index not valid!")
+        return
+    else:
+        data = matrix[:, :, :, chemical]
+
+    # Straighten-out data for clustering
+    straight_data = []
+    coordinates = []
+
+    for i in range(data.shape[1]):
+        for j in range(data.shape[2]):
+            if min(data[:, i, j]) >= 0:
+                d = data[:, i, j].tolist()
+                coordinates.append([i, j])
+                straight_data.append(d)
+
+    straight_data = straight_data[1:]
+
+    # Clustering
+    if mode == 'kmeans':
+        clustered_data = clustering(
+            data=straight_data, n_clusters=n_clusters, mode='kmeans')
+    elif mode == 'dbscan':
+        clustered_data = clustering(
+            data=straight_data, mode='dbscan', metric=metric, dbscan_epsilon=dbscan_eps)
+        n_clusters = max(clustered_data.labels_) + 1
+    elif mode == 'hierarchical':
+        clustered_data = clustering(
+            data=straight_data, n_clusters=n_clusters, mode='hierarchical')
+
+    print("The " + str(n_clusters) + " cluster sizes are:")
+    print([len(list(compress(straight_data, clustered_data.labels_ == i)))
+           for i in range(n_clusters)])
+
+    # Saving lables in a spatial martix
+    labels = np.full(data.shape[1:], np.nan)
+
+    for i in range(len(straight_data)):
+        if clustered_data.labels_[i] >= 0:
+            labels[coordinates[i][0], coordinates[i][1]
+                   ] = clustered_data.labels_[i]
+
+    del straight_data
+
+    return clustered_data, labels
+
+
+def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
+    '''
+    This function clusters spatially the data at a certain timestep and returns the clustered data
+    and the labels organized saptially.
+
+    matrix:     the data through time or the data at a particular timestep
+    timestep:   if None: the matrix is already given at a single timestep
+                if not None: it is the timestep to cluster
+    mode:       clustering mode (kmeans, dbscan, hierarchical)
+    n_clusters: for kmeans and hierarchical, is the number of clusters
+    dbscan_eps: for dbscan, the maximal neighboring distance
+    metric:     for dbscan, the metric used for distance calculations
+    '''
+    data = None
+    if timestep == None:
+        data = matrix
+    elif timestep >= matrix.shape[0]:
+        print("Timestep not valid!")
+        return
+    else:
+        data = matrix[timestep, :, :, :]
+
+    # Straighten-out data for clustering
+    straight_data = []
+    coordinates = []
+
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            if min(data[i, j, :]) >= 0:
+                d = data[i, j, :].tolist()
+                coordinates.append([i, j])
+                straight_data.append(d)
+
+    # Clustering
+    if mode == 'kmeans':
+        clustered_data = clustering(
+            data=straight_data, n_clusters=n_clusters, mode='kmeans')
+    elif mode == 'dbscan':
+        clustered_data = clustering(
+            data=straight_data, mode='dbscan', metric=metric, dbscan_epsilon=dbscan_eps)
+        n_clusters = max(clustered_data.labels_) + 1
+    elif mode == 'hierarchical':
+        clustered_data = clustering(
+            data=straight_data, n_clusters=n_clusters, mode='hierarchical')
+
+    print("The " + str(n_clusters) + " cluster sizes are:")
+    print([len(list(compress(straight_data, clustered_data.labels_ == i)))
+           for i in range(n_clusters)])
+
+    # Saving lables in a spatial martix
+    labels = np.full(data.shape[:-1], np.nan)
+
+    for i in range(len(straight_data)):
+        if clustered_data.labels_[i] >= 0:
+            labels[coordinates[i][0], coordinates[i][1]
+                   ] = clustered_data.labels_[i]
+
+    del straight_data
+
+    return clustered_data, labels
+
+
+def clustering(data=None, n_clusters=10, mode='kmeans', metric='euclidean', dbscan_epsilon=1):
 
     print("Starting the Clustering Procedure, using mode: " + mode)
 
-    if(mode == 'kmeans'):
-        clusterer = cluster.KMeans(n_clusters=n_clusters, random_state=0,
-                                   init='k-means++', n_init=30, max_iter=500, tol=1)
+    if mode == 'kmeans':
+        clusterer = cluster.KMeans(n_clusters=n_clusters, init='k-means++')
+        clusterer.fit(data)
+    elif mode == 'dbscan':
+        clusterer = cluster.DBSCAN(eps=dbscan_epsilon, metric=metric)
+        clusterer.fit(data)
+    elif mode == 'hierarchical':
+        clusterer = cluster.AgglomerativeClustering(n_clusters=n_clusters)
         clusterer.fit(data)
 
     print("Finished Clustering.")
     return clusterer
 
-# Load data
-matrix = np.load("model_data.npy")
-lons_lats = np.load("lons_lats.npy")
 
-# Select timestep
-timestep = 2000
+# Loading already saved data (see load_data.py)
+print("Collecting data")
+with np.load('model_data.npz') as m:
+    matrix = m['matrix']
+with np.load('lons_lats.npz') as ll:
+    lons_lats = ll['lons_lats']
+print("Finished collecting data")
 
-# Straighten-out data for clustering
-data = matrix[timestep, :, :, :]
-straight_data = np.array([[0, 0, 0, 0, 0, 0]])
+# Clustering variables
+tstep = 100
+chem = 0
+n_clusters = 6
+dbscan_eps = 4
 
-for i in range(data.shape[0]):
-    for j in range(data.shape[1]):
-        if min(data[i, j, :]) > -1000:
-            d = np.append(data[i, j, :], [i, j])
-            straight_data = np.append(straight_data, [d], axis=0)
+# Uncomment one of the following to cluster
 
-straight_data = straight_data[1:]
+# Clustering with kmeans
+# cl, labels = timestep_clustering(
+#     matrix=matrix, timestep=tstep, mode="kmeans", n_clusters=n_clusters)
+cl, labels = single_chemical_clustering(
+    matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
 
-# Clustering
-n_clusters = 4
-clustered_data = clustering(data=straight_data[:, 0:4], n_clusters=n_clusters)
-print("The " + str(n_clusters) + " cluster sizes:")
-print([len(list(compress(straight_data, clustered_data.labels_ == i)))
-       for i in range(n_clusters)])
+# Clustering with hierarchical/agglomeratative
+# cl, labels = timestep_clustering(matrix=matrix, timestep=tstep, mode="hierarchical", n_clusters=n_clusters)
+# cl, labels = single_chemical_clustering(matrix=matrix, chemical=chem, mode="hierarchical", n_clusters=n_clusters)
 
-# Saving lables in a spatial martix
-labels = np.full(lons_lats.shape[:-1], np.nan)
+# Clustering with dbscan (kinda shit)
+# cl, labels = timestep_clustering(matrix=matrix, timestep=tstep, mode="dbscan", dbscan_eps=dbscan_eps)
+# cl, labels = single_chemical_clustering(
+#     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
 
-for i in range(len(straight_data)):
-    labels[int(straight_data[i, 4]), int(straight_data[i, 5])] = clustered_data.labels_[i]
 
 # Plotting the clusters
 matplotlib.rcParams['figure.figsize'] = (10, 10)
@@ -74,8 +206,5 @@ plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], labels, 50,
 
 # Add Colorbar
 cbar = plt.colorbar()
-
-# Add Title
-plt.title('Time: ' + str(timestep) + ' clusters')
 
 plt.show()
