@@ -205,7 +205,7 @@ def average_data(matrix=None, chemicals=[True, True, True, True], delta_t=10):
     return data[1:, :, :, :]
 
 
-# Loading already saved data (see load_data.py)
+# Loading already saved data (see save_data.py)
 print("Fetching data...")
 with np.load('model_data.npz') as m:
     matrix = m['matrix']
