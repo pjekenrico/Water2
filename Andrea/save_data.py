@@ -2,9 +2,11 @@ import netCDF4
 from netCDF4 import Dataset
 import os
 import numpy as np
+from scipy import stats
 import datetime as dt
 
 datasets = []
+mode = '0to1'
 
 chl_path = "C:/Users/andre/OneDrive/Desktop/TUD/Mathematical Data Science/Project/Water2/Andrea/MetO-NWS-BIO-dm-CHL.nc"
 datasets.append(Dataset(chl_path, mode='r'))
@@ -42,16 +44,42 @@ for i in range(4):
     datasets[i].close()
 
 matrix = np.zeros((data[0].shape[0], data[0].shape[1], data[0].shape[2], 4))
-matrix[:, :, :, 0] = data[0]
+matrix[:, :, :, 0] = np.asarray(data[0])
 matrix[:, :, :, 1] = np.asarray(data[1])
 matrix[:, :, :, 2] = np.asarray(data[2])
 matrix[:, :, :, 3] = np.asarray(data[3])
 
+matrix = np.where(matrix < 0, np.nan, matrix)
+
+if mode == 'zscore':
+    for i in range(matrix.shape[0]):
+        a = matrix[i, :, :, 0]
+        matrix[i, :, :, 0] = (
+            a - np.full(a.shape, np.mean(a[~np.isnan(a)])))/np.std(a[~np.isnan(a)])
+        a = matrix[i, :, :, 1]
+        matrix[i, :, :, 1] = (
+            a - np.full(a.shape, np.mean(a[~np.isnan(a)])))/np.std(a[~np.isnan(a)])
+        a = matrix[i, :, :, 2]
+        matrix[i, :, :, 2] = (
+            a - np.full(a.shape, np.mean(a[~np.isnan(a)])))/np.std(a[~np.isnan(a)])
+        a = matrix[i, :, :, 3]
+        matrix[i, :, :, 3] = (
+            a - np.full(a.shape, np.mean(a[~np.isnan(a)])))/np.std(a[~np.isnan(a)])
+elif mode == '0to1':
+    for i in range(matrix.shape[0]):
+        a = matrix[i, :, :, 0]
+        matrix[i, :, :, 0] = a/np.amax(a[~np.isnan(a)])
+        a = matrix[i, :, :, 1]
+        matrix[i, :, :, 1] = a/np.amax(a[~np.isnan(a)])
+        a = matrix[i, :, :, 2]
+        matrix[i, :, :, 2] = a/np.amax(a[~np.isnan(a)])
+        a = matrix[i, :, :, 3]
+        matrix[i, :, :, 3] = a/np.amax(a[~np.isnan(a)])
+
+
 lons_lats = np.zeros((lons.shape[0], lons.shape[1], 2))
 lons_lats[:, :, 0] = np.asarray(lons)
 lons_lats[:, :, 1] = np.asarray(lats)
-
-print(type(matrix), type(lons_lats))
 
 np.savez_compressed('model_data.npz', matrix=matrix)
 np.savez_compressed('lons_lats.npz', lons_lats=lons_lats)
