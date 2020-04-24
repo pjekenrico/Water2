@@ -8,6 +8,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import sys
+from visualization import TimeSeries
 
 
 def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
@@ -339,6 +340,7 @@ labels = labels = np.full(av_matrix.shape[:], np.nan)
 for i in range(av_matrix.shape[0]):
     cl, labels[i,:,:,0] = timestep_clustering(
         matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_clusters)
+    print(i)
 # cl, labels = single_chemical_clustering(
 #     matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
 
@@ -350,6 +352,13 @@ for i in range(av_matrix.shape[0]):
 # cl, labels = timestep_clustering(matrix=matrix, timestep=tstep, mode="dbscan", dbscan_eps=dbscan_eps)
 # cl, labels = single_chemical_clustering(
 #     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
+
+
+ts = TimeSeries(labels, lons_lats[:,:,0], lons_lats[:,:,1])
+ts.createAnimation(max_data_value=[5,5,5,5], min_data_value=[-1,-1,-1,-1])
+ts.saveAnimation(name='clusters_100days_av.mp4')
+
+
 
 # Plot cluster labels
 geographic_plot(data=labels, lons_lats=lons_lats)

@@ -4,6 +4,58 @@ import os
 import numpy as np
 from scipy import stats
 import datetime as dt
+import sys
+
+def average_data(matrix=None, chemicals=[True, True, True, True], delta_t=10):
+    '''
+    This function averages the data through time
+
+    matrix:     data through time, space and chemicals
+    chemicals:  boolean array that represent which chemicals are being averaged;
+                as default, all of them are averaged
+    delta_t:    time period over which to average the data
+    '''
+
+    n_chemicals = sum(np.multiply(chemicals, 1))
+    time_steps = int(matrix.shape[0]/delta_t)
+    data = np.full(
+        (time_steps, matrix.shape[1], matrix.shape[2], n_chemicals), np.nan)
+
+    print("Starting Averaging Procedure:")
+    sys.stdout.write("[%s]" % (" " * 10))
+    sys.stdout.flush()
+    sys.stdout.write("\b" * (10+1))
+    count = 0.1
+    for t in range(time_steps):
+        layer = np.zeros((matrix.shape[1], matrix.shape[2], n_chemicals))
+        for i in range(matrix.shape[1]):
+            for j in range(matrix.shape[2]):
+                t1 = t*delta_t
+                t2 = min((t + 1)*delta_t, matrix.shape[0] - 1)
+                c = 0
+                for chem in range(len(chemicals)):
+                    if chemicals[chem]:
+                        temp_data = matrix[t1:t2, i, j, chem]
+                        not_nan_indexes = ~np.isnan(temp_data)
+                        n_not_nans = sum(np.multiply(not_nan_indexes, 1))
+                        if n_not_nans > 0:
+                            d = np.sum(temp_data[not_nan_indexes])/n_not_nans
+                            layer[i, j, c] = d
+                        else:
+                            layer[i, j, c] = np.nan
+                        c += 1
+        data[t, :, :, :] = layer
+        if t / time_steps >= count:
+            sys.stdout.write(chr(9608))
+            sys.stdout.flush()
+            count += 0.1
+
+    sys.stdout.write(chr(9608))
+    sys.stdout.flush()
+    print("\nFinished Averaging.")
+
+    return data[:, :, :, :]
+
 
 datasets = []
 mode = '0to1_dayly'
@@ -87,3 +139,5 @@ lons_lats[:, :, 1] = np.asarray(lats)
 
 np.savez_compressed('model_data.npz', matrix=matrix)
 np.savez_compressed('lons_lats.npz', lons_lats=lons_lats)
+av_matrix = average_data(matrix=matrix, delta_t=100)
+np.savez_compressed('av_model_data100.npz', matrix=av_matrix)
