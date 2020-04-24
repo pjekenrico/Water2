@@ -2,6 +2,7 @@ import sklearn.cluster as cluster
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from itertools import compress
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -317,7 +318,7 @@ print("Finished fetching data")
 # Clustering variables
 tstep = 20
 chem = 1
-n_clusters = 4
+n_clusters = 5
 dbscan_eps = 4
 
 # Average the data through time (if needed)
@@ -329,8 +330,11 @@ with np.load('av_model_data100.npz') as av_m:
 # Uncomment one of the following to cluster
 
 # Clustering with kmeans
-cl, labels = timestep_clustering(
-    matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=n_clusters)
+
+labels = labels = np.full(av_matrix.shape[:], np.nan)
+for i in range(av_matrix.shape[0]):
+    cl, labels[i,:,:,0] = timestep_clustering(
+        matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_clusters)
 # cl, labels = single_chemical_clustering(
 #     matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
 
