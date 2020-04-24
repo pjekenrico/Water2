@@ -317,17 +317,20 @@ print("Finished fetching data")
 # Clustering variables
 tstep = 20
 chem = 1
-n_clusters = 5
+n_clusters = 4
 dbscan_eps = 4
 
 # Average the data through time (if needed)
 # av_matrix = average_data(matrix=matrix, delta_t=100)
+with np.load('av_model_data100.npz') as av_m:
+    av_matrix = av_m['matrix']
+
 
 # Uncomment one of the following to cluster
 
 # Clustering with kmeans
-# cl, labels = timestep_clustering(
-#     matrix=matrix, timestep=tstep, mode="kmeans", n_clusters=n_clusters)
+cl, labels = timestep_clustering(
+    matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=n_clusters)
 # cl, labels = single_chemical_clustering(
 #     matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
 
@@ -341,4 +344,4 @@ dbscan_eps = 4
 #     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
 
 # Plot cluster labels
-geographic_plot(data=matrix[0,:,:,0], lons_lats=lons_lats)
+geographic_plot(data=labels, lons_lats=lons_lats)

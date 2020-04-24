@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [ 
 
+
         {
             "name":"Python: Clustering",
             "type":"python",
@@ -16,6 +17,12 @@
             "type":"python",
             "request":"launch",
             "program":"Andrea/save_data.py"
+        },    
+        {
+            "name":"Python: visual",
+            "type":"python",
+            "request":"launch",
+            "program":"Andrea/visualization.py"
         }
     ]
 }

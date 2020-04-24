@@ -6,7 +6,7 @@ from scipy import stats
 import datetime as dt
 
 datasets = []
-mode = '0to1'
+mode = '0to1_dayly'
 
 chl_path = "C:/Users/andre/OneDrive/Desktop/TUD/Mathematical Data Science/Project/Water2/Andrea/MetO-NWS-BIO-dm-CHL.nc"
 datasets.append(Dataset(chl_path, mode='r'))
@@ -65,16 +65,20 @@ if mode == 'zscore':
         a = matrix[i, :, :, 3]
         matrix[i, :, :, 3] = (
             a - np.full(a.shape, np.mean(a[~np.isnan(a)])))/np.std(a[~np.isnan(a)])
-elif mode == '0to1':
+elif mode == '0to1_dayly':
     for i in range(matrix.shape[0]):
         a = matrix[i, :, :, 0]
-        matrix[i, :, :, 0] = a/np.amax(a[~np.isnan(a)])
+        matrix[i, :, :, 0] = (
+            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/np.amax(a[~np.isnan(a)])
         a = matrix[i, :, :, 1]
-        matrix[i, :, :, 1] = a/np.amax(a[~np.isnan(a)])
+        matrix[i, :, :, 1] = (
+            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/np.amax(a[~np.isnan(a)])
         a = matrix[i, :, :, 2]
-        matrix[i, :, :, 2] = a/np.amax(a[~np.isnan(a)])
+        matrix[i, :, :, 2] = (
+            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/np.amax(a[~np.isnan(a)])
         a = matrix[i, :, :, 3]
-        matrix[i, :, :, 3] = a/np.amax(a[~np.isnan(a)])
+        matrix[i, :, :, 3] = (
+            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/np.amax(a[~np.isnan(a)])
 
 
 lons_lats = np.zeros((lons.shape[0], lons.shape[1], 2))
