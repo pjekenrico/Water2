@@ -7,6 +7,7 @@ __pycache__/
 *.so
 *.nc
 .vs
+*.npz
 
 # Distribution / packaging
 .Python
@@ -129,3 +130,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+/Pablo/save_data.py

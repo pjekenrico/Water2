@@ -42,6 +42,15 @@ def clean_up_artists(axis, artist_list):
         except (AttributeError, ValueError):
             pass
 
+def trim_axs(axs, N):
+    """Little helper to reshape the axis list to have correct length..."""
+    try:
+        axs = axs.flat
+        for ax in axs[N:]:
+            ax.remove()
+        return axs[:N]
+    except:
+        return[axs]
 
 def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
                     number_of_contour_levels, v_min, v_max,changed_artists, d, keys, units):
@@ -70,7 +79,7 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
     for j_col in range(n_cols):
         for i_row in range(n_rows):
 
-            ax = axis[i_row][j_col]
+            ax = axis[nr_subplot]
 
             # In the first setup call, add and empty list which can hold the artists
             # belonging to the current axis
@@ -82,7 +91,41 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
                 clean_up_artists(ax, changed_artists[nr_subplot])
 
             # Draw the field data from the multidimensional data array
-            data_2d = data_list[nr_subplot][frame_index,0]
+            if isinstance(data_list[nr_subplot], np.ma.core.MaskedArray):
+                data_2d = data_list[nr_subplot][frame_index,0]
+            elif isinstance(data_list[nr_subplot], np.ndarray):
+                data_2d = data_list[nr_subplot][frame_index]
+            else:
+                print("Unhandled data type "+str(type(data_list[nr_subplot])))
+
+            # Set map with coastlines and borders (uncomment for quicker processing...)
+            if frame_index < 0:
+                ax.coastlines(resolution='50m')
+                #ax.add_feature(cfeature.NaturalEarthFeature('physical', 'land', '10m'),\
+                #    facecolor = 'lightgray')
+                ax.add_feature(cfeature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land', '50m'),\
+                    linestyle=':', facecolor = 'none', edgecolor = 'black')
+                ax.add_feature(cfeature.NaturalEarthFeature('physical', 'lakes', '50m'),\
+                    facecolor = 'blue', edgecolor = 'blue')
+                ax.add_feature(cfeature.NaturalEarthFeature('physical', 'rivers_lake_centerlines', '50m'),\
+                    facecolor = 'none', edgecolor = 'blue')
+                
+
+            # Gridlines require an update at every iteration and slow down the simulation a lot.
+            # Uncomment to have gridlines
+            #gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,\
+            #                    linewidth=1, color='gray', alpha=0.5, linestyle='--')
+            #gl.xformatter = LONGITUDE_FORMATTER
+            #gl.yformatter = LATITUDE_FORMATTER
+            #gl.xlabels_top = False
+            #gl.ylabels_right = False
+
+            ## Remove redundant axes
+            #if i_row == n_rows-1:
+            #    gl.ylabels_left = False
+
+            #if j_col == 0:
+            #    gl.xlabels_bottom = False
 
             # Set value boundaries
             if v_min is None:
@@ -97,27 +140,21 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
             # Set the contour levels belonging to this subplot
             levels = np.linspace(data_min, data_max, number_of_contour_levels+1, endpoint=True)
 
+            # Cap data at set limits (otherwise values appear white)
+            data_2d = data_2d*(data_2d <= v_max[nr_subplot])*(data_2d >= v_min[nr_subplot])\
+                                         + v_min[nr_subplot]*(data_2d <= v_min[nr_subplot])\
+                                         + v_max[nr_subplot]*(data_2d >= v_max[nr_subplot])
+
             # Create the contour plot
-            cs = ax.contourf(lons, lats, data_2d, levels=levels, cmap=cm.rainbow, zorder=0)
-            cs.cmap.set_under("k")
-            cs.cmap.set_over("k")
+            cs = ax.contourf(lons, lats, data_2d, levels=levels, cmap=cm.rainbow, zorder=0,\
+                 transform = ccrs.PlateCarree())
             cs.set_clim(v_min[nr_subplot], v_max[nr_subplot])
 
             # Store the contours artists to the list of artists belonging to the current axis
             changed_artists[nr_subplot].append(cs)
 
-            # Set some grid lines on top of the contours
-            ax.xaxis.grid(True, zorder=0, color="black", linewidth=0.5, linestyle='--')
-            ax.yaxis.grid(True, zorder=0, color="black", linewidth=0.5, linestyle='--')
-
-            # Set the x and y label on the bottom row and left column respectively
-            if i_row == n_rows - 1:
-                ax.set_xlabel(r"Longitude ")
-            if j_col == 0:
-                ax.set_ylabel(r"Latitude ")
-
             # Set the changing time counter in the top left subplot
-            if i_row == 0 and j_col == 1:
+            if i_row == n_rows-1 and j_col == 0:
                 # Set a label to show the current time
                 time_text = ax.text(0.6, 1.15, "{}".format("Date : "+ str(d[frame_index])),\
                                 transform=ax.transAxes, fontdict=dict(color="black", size=14))
@@ -141,7 +178,7 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
 
 class TimeSeries():
 
-    def __init__(self, data, lons, lats, keys = None, units = None, d = None):
+    def __init__(self, data, lons = None, lats = None, keys = None, units = None, d = None):
         '''
         Load data for animation
             :param data: List of masked arrays, where each one contains a certain quantity.
@@ -153,17 +190,32 @@ class TimeSeries():
             :return: nothing
         '''
         # Load content
-        self.data = data
-        self.keys = keys
+        if isinstance(data, np.ndarray) and len(data.shape) == 4:
+            self.data = [data[:,:,:,i] for i in range(len(data[0,0,0,:]))]
+        elif isinstance(data, np.ndarray) and len(data.shape) == 3:
+            self.data = [data]
+        else:
+            self.data = data
 
-        # Check if given lons and lats are 2D or 1D -> then call meshgrid
-        try:
-            lons.shape[1]
-            lats.shape[1]
-            self.lons = lons
-            self.lats = lats
-        except IndexError:
-            [self.lons, self.lats] = np.meshgrid(lons,lats)
+        # If no coordinates are given create normal integer mesh
+        if lons is None and lats is None:
+            [self.lons, self.lats] = np.meshgrid(np.arange(data[0].shape[0]),np.arange(data[0].shape[1]))
+        # Read in mesh as [:,:,0-1] mesh
+        elif lats is None:
+            self.lons = lons[:,:,0]
+            self.lats = lons[:,:,1]
+        elif lons is None:
+            self.lons = lats[:,:,0]
+            self.lats = lats[:,:,1]
+        else:
+            # Check if given lons and lats are 2D or 1D -> then call meshgrid
+            try:
+                lons.shape[1]
+                lats.shape[1]
+                self.lons = lons
+                self.lats = lats
+            except IndexError:
+                [self.lons, self.lats] = np.meshgrid(lons,lats)
 
 
         # Check if keys are given
@@ -240,28 +292,10 @@ class TimeSeries():
 
         # Figure setup
         fig, axis = plt.subplots(nrows=n_rows, ncols=n_cols, sharex=True, sharey=True,\
-           figsize=(12,8))
-        #, subplot_kw={'projection': ccrs.Mercator()}
-        ## TODO: No compatibility of the projections (maps, borders) with animation
-    
+           figsize=(12,8), subplot_kw={'projection': ccrs.Mercator()})
+
+        axis = trim_axs(axis, n_rows*n_cols)    
         fig.subplots_adjust(wspace=0.05, left=0.08, right=0.98)
-
-        ## TODO: No compatibility of the projections (maps, borders) with animation
-        #axis[0][0].stock_img()
-        #axis[0][0].coastlines(resolution='10m')
-        #axis[0][0].add_feature(cfeature.BORDERS)
-
-        #axis[0][1].stock_img()
-        #axis[0][1].coastlines(resolution='10m')
-        #axis[0][1].add_feature(cfeature.BORDERS)
-
-        #axis[1][0].stock_img()
-        #axis[1][0].coastlines(resolution='10m')
-        #axis[1][0].add_feature(cfeature.BORDERS)
-
-        #axis[1][1].stock_img()
-        #axis[1][1].coastlines(resolution='10m')
-        #axis[1][1].add_feature(cfeature.BORDERS)
 
         changed_artists = list()
 
@@ -349,20 +383,25 @@ def main():
     data = []
     for i in range(4):
         data.append(datasets[i].variables[keys[i]][:])
-
-    for i in range(4):
         datasets[i].close()
 
+    # Or load precomputed data
+    #with np.load('model_data.npz') as m:
+    #    data = m['matrix']
+    #with np.load('lons_lats.npz') as ll:
+    #    lons = ll['lons_lats']
+    #lats = None
+
+    #max_data_value = [1, 1, 1, 1]
+    #min_data_value = [0, 0, 0, 0]
 
     # Read data
-    myAnimation = TimeSeries(data, lons, lats, keys = keys, units = units, d = d)
-
+    myAnimation = TimeSeries(data, lons = lons, lats = lats, keys = keys, units = units, d = d)
 
     # Set visualization parameters
-
     # User defined value ranges (colour)
-    max_data_value = [21, 380, 290, 18]
-    min_data_value = [0, 180, 0, 0]
+    max_data_value = [10, 360, 220, 6]
+    min_data_value = [0, 220, 0, 0]
 
     # Create animation
     myAnimation.createAnimation(number_of_contour_levels = 10, n_rows = 2, n_cols = 2,\
@@ -373,7 +412,6 @@ def main():
     # Note that the playback speed of the animation shown via Python might
     # not be the same as the one of the stored video (depends on the GPU)
     myAnimation.saveAnimation(fps = 8, name = 'toLazytoName', showAnim = True)
-
 
 # Execute main only if the script is run directly
 if __name__ == "__main__":
