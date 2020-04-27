@@ -144,7 +144,7 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
 
 
 # TODO
-def timewise_clustering(matrix=None, location=None, average_mode=False, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
+def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
     '''
     This function clusters spatially the data at a certain timestep and returns the clustered data
     and the labels organized saptially.
@@ -160,23 +160,25 @@ def timewise_clustering(matrix=None, location=None, average_mode=False, chemical
     data = None
     if location != None:
         data = np.asarray(matrix)
+        straight_data = []
+
+        for time in range(data.shape[0]):
+            d = data[time, location[0], location[1], chemicals].tolist()
+            straight_data.append(d)
     else:
-        if average_mode:
-            print("Timestep not valid!")
-            return
-        else:
-            data = matrix[timestep, :, :, :]
-
-    # Straighten-out data for clustering
-    straight_data = []
-    coordinates = []
-
-    for i in range(data.shape[0]):
-        for j in range(data.shape[1]):
-            if min(data[i, j, :]) >= 0:
-                d = data[i, j, :].tolist()
-                coordinates.append([i, j])
-                straight_data.append(d)
+        n_chemicals = sum(np.multiply(chemicals, 1))
+        straight_data = []
+        np.full((matrix.shape[0], n_chemicals), np.nan)
+        for t in range(matrix.shape[0]):
+            d = []
+            for chem in range(n_chemicals):
+                if chemicals[chem]:
+                    temp_data = matrix[t, :, :, chem]
+                    not_nan_indexes = ~np.isnan(temp_data)
+                    n_not_nans = np.sum(np.multiply(not_nan_indexes, 1))
+                    print(n_not_nans)
+                    d.append(np.sum(temp_data[not_nan_indexes])/n_not_nans)
+            straight_data.append(d)
 
     # Clustering
     if mode == 'kmeans':
@@ -195,12 +197,11 @@ def timewise_clustering(matrix=None, location=None, average_mode=False, chemical
            for i in range(n_clusters)])
 
     # Saving lables in a spatial martix
-    labels = np.full(data.shape[:-1], np.nan)
+    labels = np.full(len(straight_data), np.nan)
 
     for i in range(len(straight_data)):
         if clustered_data.labels_[i] >= 0:
-            labels[coordinates[i][0], coordinates[i][1]
-                   ] = clustered_data.labels_[i]
+            labels[i] = clustered_data.labels_[i]
 
     del straight_data
 
@@ -311,12 +312,22 @@ def geographic_plot(data=None, lons_lats=None):
     plt.show()
 
 
+def timeseries_plot(data=None):
+    t = np.linspace(0, len(data), len(data))
+    plt.scatter(t, data)
+    plt.show()
+
+
 # Loading already saved data (see save_data.py)
 print("Fetching data...")
-with np.load('model_data.npz') as m:
-    matrix = m['matrix']
-with np.load('lons_lats.npz') as ll:
-    lons_lats = ll['lons_lats']
+# with np.load('model_data.npz') as m:
+#     matrix = m['matrix']
+# with np.load('lons_lats.npz') as ll:
+#     lons_lats = ll['lons_lats']
+# Average the data through time (if needed)
+# av_matrix = average_data(matrix=matrix, delta_t=100)
+with np.load('av_model_data100.npz') as av_m:
+    av_matrix = av_m['matrix']
 print("Finished fetching data")
 
 
@@ -326,21 +337,17 @@ chem = 1
 n_clusters = 5
 dbscan_eps = 4
 
-# Average the data through time (if needed)
-# av_matrix = average_data(matrix=matrix, delta_t=100)
-with np.load('av_model_data100.npz') as av_m:
-    av_matrix = av_m['matrix']
 
 
 # Uncomment one of the following to cluster
 
 # Clustering with kmeans
 
-labels = labels = np.full(av_matrix.shape[:], np.nan)
-for i in range(av_matrix.shape[0]):
-    cl, labels[i,:,:,0] = timestep_clustering(
-        matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_clusters)
-    print(i)
+# labels = labels = np.full(av_matrix.shape[:-1], np.nan)
+# for i in range(av_matrix.shape[0]):
+#     cl, labels[i, :, :] = timestep_clustering(
+#         matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_clusters)
+
 # cl, labels = single_chemical_clustering(
 #     matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
 
@@ -353,12 +360,16 @@ for i in range(av_matrix.shape[0]):
 # cl, labels = single_chemical_clustering(
 #     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
 
+# Display and Save Animation
+# ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
+# ts.createAnimation(max_data_value=[
+#                    5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
+# ts.saveAnimation(name='clusters_100days_av.mp4')
 
-ts = TimeSeries(labels, lons_lats[:,:,0], lons_lats[:,:,1])
-ts.createAnimation(max_data_value=[5,5,5,5], min_data_value=[-1,-1,-1,-1])
-ts.saveAnimation(name='clusters_100days_av.mp4')
 
+# Plot cluster labels geographically
+# geographic_plot(data=labels, lons_lats=lons_lats)
 
-
-# Plot cluster labels
-geographic_plot(data=labels, lons_lats=lons_lats)
+# Plot cluster labels through time
+cl, labels = timewise_clustering(matrix=av_matrix, n_clusters=6)
+timeseries_plot(labels)
