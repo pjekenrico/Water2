@@ -5,6 +5,7 @@ import numpy as np
 from scipy import stats
 import datetime as dt
 import sys
+import pickle
 
 def average_data(matrix=None, chemicals=[True, True, True, True], delta_t=10):
     '''
@@ -136,16 +137,16 @@ elif mode == '0to1_dayly':
     for i in range(matrix.shape[0]):
         a = matrix[i, :, :, 0]
         matrix[i, :, :, 0] = (
-            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/np.amax(a[~np.isnan(a)])
+            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/(np.amax(a[~np.isnan(a)]) -  np.amin(a[~np.isnan(a)]))
         a = matrix[i, :, :, 1]
         matrix[i, :, :, 1] = (
-            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/np.amax(a[~np.isnan(a)])
+            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/(np.amax(a[~np.isnan(a)]) -  np.amin(a[~np.isnan(a)]))
         a = matrix[i, :, :, 2]
         matrix[i, :, :, 2] = (
-            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/np.amax(a[~np.isnan(a)])
+            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/(np.amax(a[~np.isnan(a)]) -  np.amin(a[~np.isnan(a)]))
         a = matrix[i, :, :, 3]
         matrix[i, :, :, 3] = (
-            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/np.amax(a[~np.isnan(a)])
+            a - np.full(a.shape, np.amin(a[~np.isnan(a)])))/(np.amax(a[~np.isnan(a)]) -  np.amin(a[~np.isnan(a)]))
 
 # Transforming lat and lon data in a np.array
 lons_lats = np.zeros((lons.shape[0], lons.shape[1], 2))
@@ -157,3 +158,7 @@ np.savez_compressed('model_data.npz', matrix=matrix)
 np.savez_compressed('lons_lats.npz', lons_lats=lons_lats)
 av_matrix = average_data(matrix=matrix, delta_t=100)
 np.savez_compressed('av_model_data100.npz', matrix=av_matrix)
+
+with open("datetimes.txt", "wb") as fp:   #Pickling
+    pickle.dump(d, fp)
+

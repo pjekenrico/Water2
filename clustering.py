@@ -8,6 +8,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import sys
+import pickle
 from visualization import TimeSeries
 
 
@@ -143,7 +144,6 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
     return clustered_data, labels
 
 
-# TODO
 def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
     '''
     This function clusters spatially the data at a certain timestep and returns the clustered data
@@ -168,18 +168,16 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
     else:
         n_chemicals = sum(np.multiply(chemicals, 1))
         straight_data = []
-        np.full((matrix.shape[0], n_chemicals), np.nan)
+        # np.full((matrix.shape[0], n_chemicals), np.nan)
         for t in range(matrix.shape[0]):
             d = []
-            for chem in range(n_chemicals):
+            for chem in range(matrix.shape[3]):
                 if chemicals[chem]:
                     temp_data = matrix[t, :, :, chem]
                     not_nan_indexes = ~np.isnan(temp_data)
                     n_not_nans = np.sum(np.multiply(not_nan_indexes, 1))
-                    print(n_not_nans)
                     d.append(np.sum(temp_data[not_nan_indexes])/n_not_nans)
             straight_data.append(d)
-
     # Clustering
     if mode == 'kmeans':
         clustered_data = clustering(
@@ -312,22 +310,23 @@ def geographic_plot(data=None, lons_lats=None):
     plt.show()
 
 
-def timeseries_plot(data=None):
-    t = np.linspace(0, len(data), len(data))
-    plt.scatter(t, data)
+def timeseries_plot(data=None, t=None):
+    plt.plot_date(t, data)
     plt.show()
 
 
 # Loading already saved data (see save_data.py)
 print("Fetching data...")
-# with np.load('model_data.npz') as m:
-#     matrix = m['matrix']
+with np.load('model_data.npz') as m:
+    matrix = m['matrix']
+with open("datetimes.txt", "rb") as fp:   # Unpickling
+    d = pickle.load(fp)
 # with np.load('lons_lats.npz') as ll:
 #     lons_lats = ll['lons_lats']
 # Average the data through time (if needed)
-# av_matrix = average_data(matrix=matrix, delta_t=100)
-with np.load('av_model_data100.npz') as av_m:
-    av_matrix = av_m['matrix']
+# av_matrix = average_data(matrix=matrix, delta_t=30)
+# with np.load('av_model_data100.npz') as av_m:
+#     av_matrix = av_m['matrix']
 print("Finished fetching data")
 
 
@@ -336,7 +335,6 @@ tstep = 20
 chem = 1
 n_clusters = 5
 dbscan_eps = 4
-
 
 
 # Uncomment one of the following to cluster
@@ -371,5 +369,14 @@ dbscan_eps = 4
 # geographic_plot(data=labels, lons_lats=lons_lats)
 
 # Plot cluster labels through time
-cl, labels = timewise_clustering(matrix=av_matrix, n_clusters=6)
-timeseries_plot(labels)
+cl, labels = timewise_clustering(matrix=matrix[0:1825,:,:,:], n_clusters=n_clusters, mode='kmeans', chemicals=[True, False, False, False])
+
+# Keeping relevant dates
+# new_d = []
+# for i in range(len(d)):
+#     if i % 30 == 0:
+#         new_d.append(d[i])
+
+# new_d.pop()
+
+timeseries_plot(data=labels, t=d[0:1825])
