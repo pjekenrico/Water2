@@ -370,6 +370,7 @@ dbscan_eps = 4
 
 # Plot cluster labels through time
 cl, labels = timewise_clustering(matrix=matrix[0:1825,:,:,:], n_clusters=n_clusters, mode='kmeans', chemicals=[True, False, False, False])
+print(cl.centroids_)
 
 # Keeping relevant dates
 # new_d = []
