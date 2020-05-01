@@ -1,4 +1,4 @@
 {
-    "python.pythonPath": "C:\\Users\\andre\\miniconda3\\python.exe",
+    "python.pythonPath": "/Users/max/anaconda2/envs/mypython3/bin/python",
     "python.formatting.provider": "autopep8"
 }
