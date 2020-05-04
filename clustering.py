@@ -146,12 +146,17 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
 
 def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
     '''
-    This function clusters spatially the data at a certain timestep and returns the clustered data
-    and the labels organized saptially.
+    This function clusters the data of the selected chemicals timewise 
+    and returns the clustered data and the labels.
 
-    matrix:     the data through time or the data at a particular timestep
-    timestep:   if None: the matrix is already given at a single timestep
-                if not None: it is the timestep to cluster
+    matrix:     the data through time
+    location:   if None: it clusters the dayly average
+                if not None: it clusters at a specific location
+    chemicals:  is the index of chemical to cluster
+                0: CHL
+                1: DOXY
+                2: NITR
+                3: PHOS
     mode:       clustering mode (kmeans, dbscan, hierarchical)
     n_clusters: for kmeans and hierarchical, is the number of clusters
     dbscan_eps: for dbscan, the maximal neighboring distance
@@ -311,22 +316,35 @@ def geographic_plot(data=None, lons_lats=None):
 
 
 def timeseries_plot(data=None, t=None):
-    plt.plot_date(t, data)
+    '''
+    data:   labels
+    t:      dates
+    '''
+    for i in range(int(max(data))+1):
+        labels = []
+        time = []
+        for j in range(len(t)):
+            if data[j] == i:
+                labels.append(i)
+                time.append(t[j])
+        plt.plot_date(time, labels, markersize=4)
+    # plt.plot_date(t, data)
     plt.show()
 
 
 # Loading already saved data (see save_data.py)
 print("Fetching data...")
-with np.load('model_data.npz') as m:
-    matrix = m['matrix']
+# with np.load('model_data.npz') as m:
+#     matrix = m['matrix']
 with open("datetimes.txt", "rb") as fp:   # Unpickling
     d = pickle.load(fp)
 # with np.load('lons_lats.npz') as ll:
 #     lons_lats = ll['lons_lats']
 # Average the data through time (if needed)
 # av_matrix = average_data(matrix=matrix, delta_t=30)
-# with np.load('av_model_data100.npz') as av_m:
-#     av_matrix = av_m['matrix']
+# np.savez_compressed('av_model_data30.npz', matrix=av_matrix)
+with np.load('av_model_data30.npz') as av_m:
+    av_matrix = av_m['matrix']
 print("Finished fetching data")
 
 
@@ -369,15 +387,15 @@ dbscan_eps = 4
 # geographic_plot(data=labels, lons_lats=lons_lats)
 
 # Plot cluster labels through time
-cl, labels = timewise_clustering(matrix=matrix[0:1825,:,:,:], n_clusters=n_clusters, mode='kmeans', chemicals=[True, False, False, False])
-print(cl.centroids_)
+cl, labels = timewise_clustering(
+    matrix=av_matrix, n_clusters=n_clusters, mode='kmeans')
 
 # Keeping relevant dates
-# new_d = []
-# for i in range(len(d)):
-#     if i % 30 == 0:
-#         new_d.append(d[i])
+new_d = []
+for i in range(len(d)):
+    if i % 30 == 0:
+        new_d.append(d[i])
 
-# new_d.pop()
+new_d.pop()
 
-timeseries_plot(data=labels, t=d[0:1825])
+timeseries_plot(data=labels, t=new_d)
