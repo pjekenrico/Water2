@@ -9,7 +9,7 @@ import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import sys
 import pickle
-from visualization import TimeSeries
+from visualization import TimeSeries, geographic_plot
 
 
 def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
@@ -283,31 +283,31 @@ def average_data(matrix=None, chemicals=[True, True, True, True], delta_t=10):
     return data[:, :, :, :]
 
 
-def geographic_plot(data=None, lons_lats=None):
-    # Plotting the clusters
-    matplotlib.rcParams['figure.figsize'] = (10, 10)
-    proj = ccrs.Mercator()
-    m = plt.axes(projection=proj)
+#def geographic_plot(data=None, lons_lats=None):
+#    # Plotting the clusters
+#    matplotlib.rcParams['figure.figsize'] = (10, 10)
+#    proj = ccrs.Mercator()
+#    m = plt.axes(projection=proj)
 
-    # Put a background image on for nice sea rendering.
-    m.stock_img()
-    m.coastlines(resolution='10m')
-    m.add_feature(cfeature.BORDERS)
-    gl = m.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
-                     linewidth=2, color='gray', alpha=0.5, linestyle='--')
-    gl.xformatter = LONGITUDE_FORMATTER
-    gl.yformatter = LATITUDE_FORMATTER
-    gl.xlabels_top = False
-    gl.ylabels_right = False
+#    # Put a background image on for nice sea rendering.
+#    m.stock_img()
+#    m.coastlines(resolution='10m')
+#    m.add_feature(cfeature.BORDERS)
+#    gl = m.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+#                     linewidth=2, color='gray', alpha=0.5, linestyle='--')
+#    gl.xformatter = LONGITUDE_FORMATTER
+#    gl.yformatter = LATITUDE_FORMATTER
+#    gl.xlabels_top = False
+#    gl.ylabels_right = False
 
-    # Plot data
-    plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, 50,
-                 transform=ccrs.PlateCarree())
+#    # Plot data
+#    plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, 50,
+#                 transform=ccrs.PlateCarree())
 
-    # Add Colorbar
-    cbar = plt.colorbar()
+#    # Add Colorbar
+#    cbar = plt.colorbar()
 
-    plt.show()
+#    plt.show()
 
 
 def timeseries_plot(data=None, t=None):
@@ -321,18 +321,18 @@ with np.load('model_data.npz') as m:
     matrix = m['matrix']
 with open("datetimes.txt", "rb") as fp:   # Unpickling
     d = pickle.load(fp)
-# with np.load('lons_lats.npz') as ll:
-#     lons_lats = ll['lons_lats']
+with np.load('lons_lats.npz') as ll:
+    lons_lats = ll['lons_lats']
 # Average the data through time (if needed)
-# av_matrix = average_data(matrix=matrix, delta_t=30)
-# with np.load('av_model_data100.npz') as av_m:
+#av_matrix = average_data(matrix=matrix, delta_t=30)
+#with np.load('av_model_data100.npz') as av_m:
 #     av_matrix = av_m['matrix']
 print("Finished fetching data")
 
 
 # Clustering variables
 tstep = 20
-chem = 1
+chem = 0
 n_clusters = 5
 dbscan_eps = 4
 
@@ -341,13 +341,13 @@ dbscan_eps = 4
 
 # Clustering with kmeans
 
-# labels = labels = np.full(av_matrix.shape[:-1], np.nan)
-# for i in range(av_matrix.shape[0]):
-#     cl, labels[i, :, :] = timestep_clustering(
-#         matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_clusters)
+#labels = labels = np.full(av_matrix.shape[:-1], np.nan)
+#for i in range(av_matrix.shape[0]):
+#    cl, labels[i, :, :] = timestep_clustering(
+#        matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_clusters)
 
-# cl, labels = single_chemical_clustering(
-#     matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
+cl, labels = single_chemical_clustering(
+    matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
 
 # Clustering with hierarchical/agglomeratative
 # cl, labels = timestep_clustering(matrix=matrix, timestep=tstep, mode="hierarchical", n_clusters=n_clusters)
@@ -359,17 +359,27 @@ dbscan_eps = 4
 #     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
 
 # Display and Save Animation
-# ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
-# ts.createAnimation(max_data_value=[
+#ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
+#ts.createAnimation(max_data_value=[
 #                    5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
-# ts.saveAnimation(name='clusters_100days_av.mp4')
+#ts.saveAnimation(name='clusters_100days_av')
 
 
 # Plot cluster labels geographically
-# geographic_plot(data=labels, lons_lats=lons_lats)
+
+data = np.zeros((labels.shape))
+meanValueOverTime = np.mean(matrix[:,:,:,chem], axis = 0)
+
+for i in range(n_clusters):
+    meanValueCluster = np.mean(meanValueOverTime[labels == i])
+    data += meanValueCluster * (labels == i)
+
+data = np.ma.masked_array(data, data == 0)
+
+geographic_plot(data=data, lons_lats=lons_lats, key = '', unit = '', date = '', minVal = np.nanmin(data), maxVal = np.nanmax(data), adjustBorder = False)
 
 # Plot cluster labels through time
-cl, labels = timewise_clustering(matrix=matrix[0:1825,:,:,:], n_clusters=n_clusters, mode='kmeans', chemicals=[True, False, False, False])
+# cl, labels = timewise_clustering(matrix=matrix[0:1825,:,:,:], n_clusters=n_clusters, mode='kmeans', chemicals=[True, False, False, False])
 
 # Keeping relevant dates
 # new_d = []
@@ -379,4 +389,4 @@ cl, labels = timewise_clustering(matrix=matrix[0:1825,:,:,:], n_clusters=n_clust
 
 # new_d.pop()
 
-timeseries_plot(data=labels, t=d[0:1825])
+#timeseries_plot(data=labels, t=d[0:1825])

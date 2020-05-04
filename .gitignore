@@ -2,12 +2,15 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.ipynb
+.DS_Store
 
 # C extensions
 *.so
 *.nc
 .vs
 *.npz
+datetimes.txt
 
 # Distribution / packaging
 .Python

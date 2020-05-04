@@ -1,6 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-import os
-import netCDF4
+import os, netCDF4, string
 from netCDF4 import Dataset
 import numpy as np
 import datetime as dt
@@ -10,7 +9,80 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from matplotlib import cm
-import string
+
+
+
+def geographic_plot(data, lons_lats = None, key = None, unit = None, date = None, minVal = None, maxVal = None, adjustBorder = True):
+    '''
+        Plot single data frames.
+
+        param data: 2D numpy array
+        param lons_lats: Array of the shape [:,:,2] containing the longitudes in the first layer and the
+        latitudes on the second layer.
+        param key: String that denotes the quantity to be displayed e.g. "$NO_3$"
+        param unit: (String) Unit of the displayed quantity e.g. "$mmol/m^3$"
+        param date: (datetime) Date in datetime format (will be casted to string...)
+        param minVal: (float) Lower bound for the value range. Lower values are capped at minVal.
+        param maxVal: (float) Uower bound for the value range. Larger values are capped at maxVal.
+    '''
+
+
+    # Plotting the clusters
+    fig = plt.figure(figsize = (12,8))
+    ax = plt.axes(projection = ccrs.Mercator())
+
+    # Put a background image on for nice sea rendering.
+    ax.stock_img()
+
+    # High resolution map features
+    ax.coastlines(resolution='10m')
+    ax.add_feature(cfeature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land', '10m'),\
+        linestyle=':', facecolor = 'none', edgecolor = 'black')
+    ax.add_feature(cfeature.NaturalEarthFeature('physical', 'rivers_lake_centerlines', '10m'),\
+        facecolor = 'none', edgecolor = 'blue')
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                     linewidth=1, color='gray', alpha=0.5, linestyle='--')
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabels_top = False
+    gl.ylabels_right = False
+
+    # Adapt value ranges according to minVal and maxVal
+    if maxVal is None and not minVal is None:
+        data = data*(data >= minVal) + minVal*(data <= minVal)
+    elif minVal is None and not maxVal is None:
+        data = data*(data <= maxVal) + maxVal*(data >= maxVal)
+    elif not maxVal is None and not minVal is None:
+        data = data*(data <= maxVal)*(data >= minVal) + minVal*(data <= minVal) + maxVal*(data >= maxVal)
+
+    # Plot data
+    cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, 50,\
+       cmap=cm.rainbow, transform=ccrs.PlateCarree())
+
+    # Add date
+    if not date is None:
+        ax.text(0.8, 1.02, "{}".format("Date : "+ str(date)),\
+                                transform=ax.transAxes, fontdict=dict(color="black", size=14))
+
+    # Fix lats and lons to the given lons_lats instead of some reduced size based on the values of data
+    if not adjustBorder:
+        ax.set_extent([np.min(lons_lats[:, :, 0]),np.max(lons_lats[:, :, 0]),\
+            np.min(lons_lats[:, :, 1]),np.max(lons_lats[:, :, 1])], crs=ccrs.PlateCarree())
+
+    cs.set_clim(np.nanmin(data), np.nanmax(data))
+
+    # Add Colorbar
+    cbar = fig.colorbar(cs, ax = ax, fraction=0.046, pad=0.04)
+
+    if not unit is None:
+        cbar.ax.set_ylabel(unit)
+
+    if not key is None:
+        ax.text(0.0, 1.02, "{}".format("Quantity: "+ key),\
+                     transform=ax.transAxes, fontdict=dict(color="black", size=14))
+
+    #plt.show()
 
 
 def clean_up_artists(axis, artist_list):
@@ -92,7 +164,10 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
 
             # Draw the field data from the multidimensional data array
             if isinstance(data_list[nr_subplot], np.ma.core.MaskedArray):
-                data_2d = data_list[nr_subplot][frame_index,0]
+                if len(data_list[nr_subplot].shape) == 3:
+                    data_2d = data_list[nr_subplot][frame_index,:,:]
+                else:
+                    data_2d = data_list[nr_subplot][frame_index,0]
             elif isinstance(data_list[nr_subplot], np.ndarray):
                 data_2d = data_list[nr_subplot][frame_index]
             else:
@@ -105,8 +180,6 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
                 #    facecolor = 'lightgray')
                 ax.add_feature(cfeature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land', '50m'),\
                     linestyle=':', facecolor = 'none', edgecolor = 'black')
-                ax.add_feature(cfeature.NaturalEarthFeature('physical', 'lakes', '50m'),\
-                    facecolor = 'blue', edgecolor = 'blue')
                 ax.add_feature(cfeature.NaturalEarthFeature('physical', 'rivers_lake_centerlines', '50m'),\
                     facecolor = 'none', edgecolor = 'blue')
                 
@@ -141,9 +214,10 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
             levels = np.linspace(data_min, data_max, number_of_contour_levels+1, endpoint=True)
 
             # Cap data at set limits (otherwise values appear white)
-            data_2d = data_2d*(data_2d <= v_max[nr_subplot])*(data_2d >= v_min[nr_subplot])\
-                                         + v_min[nr_subplot]*(data_2d <= v_min[nr_subplot])\
-                                         + v_max[nr_subplot]*(data_2d >= v_max[nr_subplot])
+            if ~np.isnan(data_2d).any():
+                data_2d = data_2d*(data_2d <= v_max[nr_subplot])*(data_2d >= v_min[nr_subplot])\
+                                             + v_min[nr_subplot]*(data_2d <= v_min[nr_subplot])\
+                                             + v_max[nr_subplot]*(data_2d >= v_max[nr_subplot])
 
             # Create the contour plot
             cs = ax.contourf(lons, lats, data_2d, levels=levels, cmap=cm.rainbow, zorder=0,\
@@ -156,7 +230,7 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
             # Set the changing time counter in the top left subplot
             if i_row == n_rows-1 and j_col == 0:
                 # Set a label to show the current time
-                time_text = ax.text(0.6, 1.15, "{}".format("Date : "+ str(d[frame_index])),\
+                time_text = ax.text(0.6, 1.05, "{}".format("Date : "+ str(d[frame_index])),\
                                 transform=ax.transAxes, fontdict=dict(color="black", size=14))
 
                 # Store the artist of this label in the changed artist list
@@ -271,13 +345,13 @@ class TimeSeries():
 
 
         # Set frame control
-        if start_frame is None:
+        if start_frame is None or start_frame > len(self.d):
             start_frame = 0
 
-        if end_frame is None:
+        if end_frame is None or end_frame > len(self.d):
             end_frame = len(self.d)
 
-        if skip_frames is None:
+        if skip_frames is None or skip_frames > len(self.d):
             skip_frames = 1 # 1 - no skipping
 
         frames = range(start_frame,end_frame,skip_frames)

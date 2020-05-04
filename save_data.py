@@ -60,12 +60,13 @@ def average_data(matrix=None, chemicals=[True, True, True, True], delta_t=10):
 
 datasets = []
 
-# 0to1_dayly: scales the data linearly from 0 to 1; 0 is dayly min and 1 is dayly max
-# zscores: scales the data based on dayly zscores 
+# 0to1_dayly: scales the data linearly from 0 to 1; 0 is daily min and 1 is daily max
+# zscores: scales the data based on daily zscores 
 mode = '0to1_dayly'
 
 # Loading data from datasets
-path_to_files = "C:/Users/andre/OneDrive/Desktop/TUD/Mathematical Data Science/Project/Water2/Andrea/MetO-NWS-BIO-dm-"
+path_to_files = os.path.abspath('')+'\MetO-NWS-BIO-dm-'
+#path_to_files = "C:/Users/andre/OneDrive/Desktop/TUD/Mathematical Data Science/Project/Water2/Andrea/MetO-NWS-BIO-dm-"
 extension = ".nc"
 
 chl_path = path_to_files + "CHL" + extension
