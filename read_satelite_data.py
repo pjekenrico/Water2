@@ -9,7 +9,7 @@ from itertools import compress
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
-from visualization import TimeSeries, geographic_plot
+from visualization import TimeSeries, SateliteTimeSeries, geographic_plot
 
 
 def readSatData(path):
@@ -167,33 +167,48 @@ class SateliteData(DataSet):
         self.lats = self.lats[minLat : maxLat]
 
 
-chl_path = 'dataset-CHL-satellite-daily.nc'
-spm_path = 'dataset-SPM-satellite-monthly.nc'
 
-sat1 = SateliteData('dataset-CHL-satellite-daily.nc')
-#sat2 = SateliteData('dataset-SPM-satellite-monthly.nc')
+def __main__():
+    chl_path = 'dataset-CHL-satellite-daily.nc'
+    spm_path = 'dataset-SPM-satellite-monthly.nc'
+
+    sat1 = SateliteData('dataset-CHL-satellite-daily.nc')
+    #sat2 = SateliteData('dataset-SPM-satellite-monthly.nc')
 
 
-lons, lats = np.meshgrid(sat1.lons, sat1.lats)
-lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
-lons_lats[:,:,0] = lons
-lons_lats[:,:,1] = lats
+    myAnimation = SateliteTimeSeries(sat1)
 
-timestep = 5000
+    max_data_value = [24, 10]
+    min_data_value = [0, 0]
 
-geographic_plot(sat1.data[timestep,:,:], lons_lats, key = sat1.keys+' (Sat)',\
-   unit = sat1.unit, date = sat1.times[timestep], minVal = None,\
-   maxVal = 0.5*np.nanmax(sat1.data[timestep,:,:]), adjustBorder = False)
+    # Create animation
+    myAnimation.createAnimation(number_of_contour_levels = 20, n_rows = 1, n_cols = 2,\
+        max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 100,\
+        end_frame = 5000, skip_frames = 100)
 
-timestep = 5000
+    myAnimation.saveAnimation(fps = 8, name = 'toLazytoName')
 
-lons, lats = np.meshgrid(sat1.RefSet.lons, sat1.RefSet.lats)
-lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
-lons_lats[:,:,0] = lons
-lons_lats[:,:,1] = lats
+    #lons, lats = np.meshgrid(sat1.lons, sat1.lats)
+    #lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
+    #lons_lats[:,:,0] = lons
+    #lons_lats[:,:,1] = lats
 
-geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = sat1.RefSet.keys,\
-   unit = sat1.RefSet.unit, date = sat1.RefSet.times[timestep], minVal = None,\
-   maxVal = 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:]), adjustBorder = False)
+    #timestep = 5000
 
-plt.show()
+    #geographic_plot(sat1.data[timestep,:,:], lons_lats, key = sat1.keys+' (Sat)',\
+    #   unit = sat1.unit, date = sat1.times[timestep], minVal = None,\
+    #   maxVal = 0.5*np.nanmax(sat1.data[timestep,:,:]), adjustBorder = False)
+
+    #timestep = 5000
+
+    #lons, lats = np.meshgrid(sat1.RefSet.lons, sat1.RefSet.lats)
+    #lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
+    #lons_lats[:,:,0] = lons
+    #lons_lats[:,:,1] = lats
+
+    #geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = sat1.RefSet.keys,\
+    #   unit = sat1.RefSet.unit, date = sat1.RefSet.times[timestep], minVal = None,\
+    #   maxVal = 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:]), adjustBorder = False)
+
+if __name__ == "__main__":
+    __main__()

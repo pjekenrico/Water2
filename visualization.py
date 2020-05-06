@@ -82,7 +82,7 @@ def geographic_plot(data, lons_lats = None, key = None, unit = None, date = None
         ax.text(0.0, 1.02, "{}".format("Quantity: "+ key),\
                      transform=ax.transAxes, fontdict=dict(color="black", size=14))
 
-    #plt.show()
+    plt.show()
 
 
 def clean_up_artists(axis, artist_list):
@@ -175,12 +175,10 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
 
             # Set map with coastlines and borders (uncomment for quicker processing...)
             if frame_index < 0:
-                ax.coastlines(resolution='50m')
-                #ax.add_feature(cfeature.NaturalEarthFeature('physical', 'land', '10m'),\
-                #    facecolor = 'lightgray')
-                ax.add_feature(cfeature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land', '50m'),\
+                ax.coastlines(resolution='10m')
+                ax.add_feature(cfeature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land', '10m'),\
                     linestyle=':', facecolor = 'none', edgecolor = 'black')
-                ax.add_feature(cfeature.NaturalEarthFeature('physical', 'rivers_lake_centerlines', '50m'),\
+                ax.add_feature(cfeature.NaturalEarthFeature('physical', 'rivers_lake_centerlines', '10m'),\
                     facecolor = 'none', edgecolor = 'blue')
                 
 
@@ -220,8 +218,14 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
                                              + v_max[nr_subplot]*(data_2d >= v_max[nr_subplot])
 
             # Create the contour plot
-            cs = ax.contourf(lons, lats, data_2d, levels=levels, cmap=cm.rainbow, zorder=0,\
-                 transform = ccrs.PlateCarree())
+            if isinstance(lons, list):
+                cs = ax.contourf(lons[nr_subplot], lats[nr_subplot], data_2d, levels=levels, cmap=cm.rainbow, zorder=0,\
+                     transform = ccrs.PlateCarree())
+                ax.set_extent([np.min(lons[nr_subplot]),np.max(lons[nr_subplot]),\
+                        np.min(lats[nr_subplot]),np.max(lats[nr_subplot])], crs=ccrs.PlateCarree())
+            else:
+                cs = ax.contourf(lons, lats, data_2d, levels=levels, cmap=cm.rainbow, zorder=0,\
+                     transform = ccrs.PlateCarree())
             cs.set_clim(v_min[nr_subplot], v_max[nr_subplot])
 
             # Store the contours artists to the list of artists belonging to the current axis
@@ -230,7 +234,11 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
             # Set the changing time counter in the top left subplot
             if i_row == n_rows-1 and j_col == 0:
                 # Set a label to show the current time
-                time_text = ax.text(0.6, 1.05, "{}".format("Date : "+ str(d[frame_index])),\
+                if isinstance(d[0], list):
+                    time_text = ax.text(0.6, 1.05, "{}".format("Date : "+ str(d[nr_subplot][frame_index])),\
+                                transform=ax.transAxes, fontdict=dict(color="black", size=14))
+                else:
+                    time_text = ax.text(0.6, 1.05, "{}".format("Date : "+ str(d[frame_index])),\
                                 transform=ax.transAxes, fontdict=dict(color="black", size=14))
 
                 # Store the artist of this label in the changed artist list
@@ -238,10 +246,14 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
 
             # Set the colourbar at initiation
             if frame_index < 0 and None not in v_max and None not in v_min:
-                cbar = fig.colorbar(cs, ax=ax)
+                cbar = fig.colorbar(cs, ax=ax, fraction=0.046, pad=0.04)
                 cbar.ax.set_ylabel(units[nr_subplot])
                 ax.text(0.0, 1.02, "{}".format("Quantity: "+ keys[nr_subplot]),\
                            transform=ax.transAxes, fontdict=dict(color="blue", size=12))
+
+            if frame_index < -1 and isinstance(lons, list):
+                ax.set_extent([np.min(lons[nr_subplot]),np.max(lons[nr_subplot]),\
+                    np.min(lats[nr_subplot]),np.max(lats[nr_subplot])], crs=ccrs.PlateCarree())
 
             nr_subplot += 1
 
@@ -281,6 +293,15 @@ class TimeSeries():
         elif lons is None:
             self.lons = lats[:,:,0]
             self.lats = lats[:,:,1]
+        elif isinstance(lons, list) and isinstance(lats, list):
+            self.lons = list()
+            self.lats = list()
+            [tmp1, tmp2] = np.meshgrid(lons[0],lats[0])
+            self.lons.append(tmp1)
+            self.lats.append(tmp2)
+            [tmp1, tmp2] = np.meshgrid(lons[1],lats[1])
+            self.lons.append(tmp1)
+            self.lats.append(tmp2)
         else:
             # Check if given lons and lats are 2D or 1D -> then call meshgrid
             try:
@@ -316,11 +337,6 @@ class TimeSeries():
         else:
             self.d = d
 
-        print("Domain coordinates: " + str((np.min(self.lats), np.max(self.lats))) +", "+ str((np.min(self.lons), np.max(self.lons))))
-        print("Domain dimensions (lat, lon): " + str(self.lons.shape))
-        print("Time frame: " + str(self.d[0]) + " - " +str(self.d[-1]))
-        print("Number of time steps: " + str(len(self.d)))
-
 
     def createAnimation(self, number_of_contour_levels = 10, n_rows = 2, n_cols = 2,\
        max_data_value = None, min_data_value = None, start_frame = None, end_frame = None, skip_frames = None):
@@ -335,23 +351,19 @@ class TimeSeries():
             :return: nothing
         '''
 
-        # Image sizes
-        n_pixels_x,n_pixels_y = self.lons.shape
-
-
         # Check on given input
         if n_rows * n_cols != len(self.data):
             print("Amount of intended subplots ({}·{}) does not match the amount of data sets given ({})".format(n_rows,n_cols,len(self.data)))
 
 
         # Set frame control
-        if start_frame is None or start_frame > len(self.d):
+        if start_frame is None or (start_frame > len(self.d) and len(self.d) != 2):
             start_frame = 0
 
-        if end_frame is None or end_frame > len(self.d):
+        if end_frame is None or (end_frame > len(self.d) and len(self.d) != 2):
             end_frame = len(self.d)
 
-        if skip_frames is None or skip_frames > len(self.d):
+        if skip_frames is None or (skip_frames > len(self.d) and len(self.d) != 2):
             skip_frames = 1 # 1 - no skipping
 
         frames = range(start_frame,end_frame,skip_frames)
@@ -366,10 +378,10 @@ class TimeSeries():
 
         # Figure setup
         fig, axis = plt.subplots(nrows=n_rows, ncols=n_cols, sharex=True, sharey=True,\
-           figsize=(12,8), subplot_kw={'projection': ccrs.Mercator()})
+           figsize=(14,8), subplot_kw={'projection': ccrs.Mercator()})
 
         axis = trim_axs(axis, n_rows*n_cols)    
-        fig.subplots_adjust(wspace=0.05, left=0.08, right=0.98)
+        fig.subplots_adjust(wspace=0.15, left=0.05, right=0.95)
 
         changed_artists = list()
 
@@ -387,8 +399,10 @@ class TimeSeries():
                                                 max_data_value, changed_artists, self.d, self.keys, self.units),\
                                            blit=False, repeat=False)
 
+        plt.show()
 
-    def saveAnimation(self, fps = 8, name = 'toLazytoName', showAnim = True):
+
+    def saveAnimation(self, fps = 8, name = 'toLazytoName'):
         '''
         Save animation after computing it with createAnimation
             :param fps: Amount of frames displayed each second in the video e.g. 10.
@@ -403,11 +417,26 @@ class TimeSeries():
             writer = Writer(fps=fps, metadata=dict(artist='Me'), bitrate=1800)
             self.ani.save(name+'.mp4', writer=writer)
 
-            if showAnim:
-                plt.show()
 
 
 
+
+
+class SateliteTimeSeries(TimeSeries):
+    '''
+        Make an animation to compare satelite and normal data.
+    '''
+
+    def __init__(self,satData):
+        from read_satelite_data import SateliteData
+        data = [satData.data,satData.RefSet.data]
+        lons = [satData.lons,satData.RefSet.lons]
+        lats = [satData.lats,satData.RefSet.lats]
+        keys = [satData.keys,satData.RefSet.keys]
+        units = [satData.unit,satData.RefSet.unit]
+        d = [satData.times,satData.RefSet.times]
+
+        super().__init__(data, lons = lons, lats = lats, keys = keys, units = units, d = d)
 
 
 # Example on how to use the visualization on raw data
@@ -436,7 +465,7 @@ def main():
     keys.append(list(datasets[1].variables)[0])
     keys.append(list(datasets[2].variables)[0])
     keys.append(list(datasets[3].variables)[1])
-    units = ["mg/m^3","mmol/m^3","mmol/m^3","mmol/m^3"]
+    units = ["$mg/m^3$","$mmol/m^3$","$mmol/m^3$","$mmol/m^3$"]
 
     # Read the measurment dates
     time = datasets[0].variables['time']
@@ -485,7 +514,7 @@ def main():
     # Save animation and view
     # Note that the playback speed of the animation shown via Python might
     # not be the same as the one of the stored video (depends on the GPU)
-    myAnimation.saveAnimation(fps = 8, name = 'toLazytoName', showAnim = True)
+    myAnimation.saveAnimation(fps = 8, name = 'toLazytoName')
 
 # Execute main only if the script is run directly
 if __name__ == "__main__":

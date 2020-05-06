@@ -288,33 +288,6 @@ def average_data(matrix=None, chemicals=[True, True, True, True], delta_t=10):
     return data[:, :, :, :]
 
 
-#def geographic_plot(data=None, lons_lats=None):
-#    # Plotting the clusters
-#    matplotlib.rcParams['figure.figsize'] = (10, 10)
-#    proj = ccrs.Mercator()
-#    m = plt.axes(projection=proj)
-
-#    # Put a background image on for nice sea rendering.
-#    m.stock_img()
-#    m.coastlines(resolution='10m')
-#    m.add_feature(cfeature.BORDERS)
-#    gl = m.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
-#                     linewidth=2, color='gray', alpha=0.5, linestyle='--')
-#    gl.xformatter = LONGITUDE_FORMATTER
-#    gl.yformatter = LATITUDE_FORMATTER
-#    gl.xlabels_top = False
-#    gl.ylabels_right = False
-
-#    # Plot data
-#    plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, 50,
-#                 transform=ccrs.PlateCarree())
-
-#    # Add Colorbar
-#    cbar = plt.colorbar()
-
-#    plt.show()
-
-
 def timeseries_plot(data=None, t=None):
     '''
     data:   labels
