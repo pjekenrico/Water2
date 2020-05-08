@@ -327,6 +327,7 @@ def region_clusters(data=None, lons_lats=None, n_clusters=4):
 
     return regions_labels
 
+
 def sort_clusters(labels=None, cluster_sizes=[]):
     n_clusters = len(cluster_sizes)
     new_labels = []
@@ -382,36 +383,27 @@ dbscan_eps = 4
 # cl, labels = single_chemical_clustering(
 #     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
 
+
 # Display and Save Animation
-ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
-ts.createAnimation(max_data_value=[
-                   5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
-ts.saveAnimation(name='clusters_Yearly_av')
+# ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
+# ts.createAnimation(max_data_value=[
+#                    5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
+# ts.saveAnimation(name='clusters_Yearly_av')
 
 
 # Plot cluster labels geographically
 
-# data = np.zeros((labels.shape))
-# meanValueOverTime = np.mean(matrix[:,:,:,chem], axis = 0)
-
-# for i in range(n_clusters):
-#     meanValueCluster = np.mean(meanValueOverTime[labels == i])
-#     data += meanValueCluster * (labels == i)
-
-# data = np.ma.masked_array(data, data == 0)
-
 # geographic_plot(data=data, lons_lats=lons_lats, key = '', unit = '', date = '', minVal = np.nanmin(data), maxVal = np.nanmax(data), adjustBorder = False)
 
-# # Plot cluster labels through time
-# cl, labels = timewise_clustering(
-#     matrix=av_matrix, n_clusters=n_clusters, mode='kmeans')
+# Plot cluster labels through time
+cl, labels, s = timewise_clustering(matrix=av_matrix, n_clusters=n_clusters)
 
-# # Keeping relevant dates
-# new_d = []
-# for i in range(len(d)):
-#     if i % 30 == 0:
-#         new_d.append(d[i])
+# Keeping relevant dates
+new_d = []
+for i in range(len(d)):
+    if i % 366 == 0:
+        new_d.append(d[i])
 
-# new_d.pop()
+new_d.pop()
 
-# timeseries_plot(data=labels, t=new_d)
+timeseries_plot(data=labels, t=new_d)
