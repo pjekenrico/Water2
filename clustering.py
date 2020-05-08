@@ -1,5 +1,6 @@
 import sklearn.cluster as cluster
 import numpy as np
+from scipy import stats
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -308,6 +309,24 @@ def timeseries_plot(data=None, t=None):
     plt.show()
 
 
+def region_clusters(data=None, lons_lats=None, n_clusters=4):
+    labels = np.full(data.shape[:-1], np.nan)
+    for i in range(data.shape[0]):
+        cl, labels[i, :, :], cl_sizes = timestep_clustering(
+            matrix=data, timestep=i, mode="kmeans", n_clusters=n_clusters)
+        labels[i, :, :] = sort_clusters(
+            labels=labels[i, :, :], cluster_sizes=cl_sizes)
+
+    regions_labels = np.full(labels.shape[1:], np.nan)
+
+    for i in range(regions_labels.shape[0]):
+        for j in range(regions_labels.shape[1]):
+            regions_labels[i, j] = stats.mode(labels[:, i, j])[0]
+
+    geographic_plot(data=regions_labels, lons_lats=lons_lats)
+
+    return regions_labels
+
 def sort_clusters(labels=None, cluster_sizes=[]):
     n_clusters = len(cluster_sizes)
     new_labels = []
@@ -319,9 +338,9 @@ def sort_clusters(labels=None, cluster_sizes=[]):
         new_labels.append(position)
 
     for i in range(n_clusters):
-        np.where(labels == i, new_labels[i] + n_clusters, labels)
+        labels = np.where(labels == i, new_labels[i] + n_clusters, labels)
 
-    labels -= n_clusters
+    return labels - n_clusters
 
 
 # Loading already saved data (see save_data.py)
@@ -346,18 +365,11 @@ chem = 1
 n_clusters = 4
 dbscan_eps = 4
 
+r_labels = region_clusters(data=av_matrix, lons_lats=lons_lats, n_clusters=4)
 
 # Uncomment one of the following to cluster
 
 # Clustering with kmeans
-
-labels = np.full(av_matrix.shape[:-1], np.nan)
-for i in range(av_matrix.shape[0]):
-    cl, labels[i, :, :], cl_sizes = timestep_clustering(
-        matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_clusters)
-    # sort_clusters(labels=labels[i, :, :], cluster_sizes=cl_sizes)
-    # geographic_plot(labels[i, :, :], lons_lats=lons_lats)
-
 # cl, labels = single_chemical_clustering(
 #     matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
 
@@ -371,9 +383,9 @@ for i in range(av_matrix.shape[0]):
 #     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
 
 # Display and Save Animation
-ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
-ts.createAnimation(max_data_value=[
-                   5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
+# ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
+# ts.createAnimation(max_data_value=[
+#                    5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
 # ts.saveAnimation(name='clusters_Yearly_av')
 
 
