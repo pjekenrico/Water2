@@ -9,8 +9,67 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from matplotlib import cm
+from sklearn.metrics import silhouette_score, silhouette_samples
 
 
+def silhouette_plot(labels, data, name_model, plotGraph = False):
+    '''Returns the silhouette metric and the respective graph (if required):
+    Receives three parameters:
+        - labels: Labels of clustering model
+        - data: data where the model is applied
+        - plotGraph (default False)
+        - name_model = Name of the evaluated model
+
+    s_avg  : Average silhouette metric for the clustering model
+    '''
+
+    n_clusters = len(set(labels))
+    if n_clusters == 1:
+        return 1
+
+    s_samples = silhouette_samples(X = data, labels = labels)
+    s_avg = silhouette_score(X = data, labels = labels)
+
+    if plotGraph:
+        fig, ax = plt.subplots()
+        fig.set_size_inches(8, 8)
+        ax.set_xlim([-1, 1])
+        ax.set_ylim([0, len(data) + (n_clusters + 1) * 10])
+        #ax.set_ylim([0, data.getnnz() + (n_clusters + 1)])
+
+
+        y_lower = 10
+        for i in range(n_clusters):
+            # Aggregate the silhouette scores for samples belonging to
+            # cluster i, and sort them
+            ith_cluster_silhouette_values = s_samples[labels == i]
+            ith_cluster_silhouette_values.sort()
+
+            size_cluster_i = ith_cluster_silhouette_values.shape[0]
+
+            y_upper = y_lower + size_cluster_i
+
+            color = cm.nipy_spectral(float(i) / n_clusters)
+            ax.fill_betweenx(np.arange(y_lower, y_upper),
+                              0, ith_cluster_silhouette_values,
+                              facecolor=color, edgecolor=color, alpha=0.7)
+
+            # Label the silhouette plots with their cluster numbers at the middle
+            ax.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
+
+            # Compute the new y_lower for next plot
+            y_lower = y_upper + 10  # 10 for the 0 samples
+
+        # Adjust the plot
+        ax.set_title("Silhouette plot for the various clusters for the model " + name_model + ".\nAverage value: {}".format(s_avg))
+        ax.set_xlabel("Silhouette coefficient values")
+        ax.set_ylabel("Cluster label")
+        ax.axvline(x=s_avg, color="red", linestyle="--")
+        ax.set_yticks([])  # Clear the yaxis labels / ticks
+        ax.set_xticks([-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1])
+        plt.show()
+
+    return s_avg
 
 def geographic_plot(data, lons_lats = None, key = None, unit = None, date = None, minVal = None, maxVal = None, adjustBorder = True):
     '''
@@ -88,9 +147,9 @@ def geographic_plot(data, lons_lats = None, key = None, unit = None, date = None
 def clean_up_artists(axis, artist_list):
     """
     Try to remove the artists stored in the artist list belonging to the 'axis'.
-    :param axis: clean artists belonging to these axis
-    :param artist_list: list of artist to remove
-    :return: nothing
+     axis: clean artists belonging to these axis
+     artist_list: list of artist to remove
+    return: nothing
     """
     for artist in artist_list:
         try:
@@ -129,20 +188,20 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
     """
     Update the the contour plots of the time step 'frame_index'
 
-    :param frame_index: Integer required by animation running from 0 to n_frames -1.
+     frame_index: Integer required by animation running from 0 to n_frames -1.
     For initialisation of the plot call 'update_plot' with frame_index = -1
-    :param data_list: List with the 3D data (time x 2D data) per subplot
-    :param lons: Longitude degrees
-    :param lats: Latitude degrees
-    :param fig: Reference to the figure
-    :param axis: Reference to the list of axis with the axes per subplot
-    :param n_cols: Number of subplot in horizontal direction
-    :param n_rows: Number of subplot in vertical direction
-    :param number_of_contour_levels: Number of contour levels
-    :param v_min: Minimum global data value. If None take min(data) in the 2d dataset
-    :param v_max: Maximum global data value. If None take the largest value in the 2d data set
-    :param changed_artists: List of lists of artists which are updated between the time steps
-    :return: Changed_artists list
+     data_list: List with the 3D data (time x 2D data) per subplot
+     lons: Longitude degrees
+     lats: Latitude degrees
+     fig: Reference to the figure
+     axis: Reference to the list of axis with the axes per subplot
+     n_cols: Number of subplot in horizontal direction
+     n_rows: Number of subplot in vertical direction
+     number_of_contour_levels: Number of contour levels
+     v_min: Minimum global data value. If None take min(data) in the 2d dataset
+     v_max: Maximum global data value. If None take the largest value in the 2d data set
+     changed_artists: List of lists of artists which are updated between the time steps
+    return: Changed_artists list
     """
 
     # Number of current subplot
@@ -267,13 +326,13 @@ class TimeSeries():
     def __init__(self, data, lons = None, lats = None, keys = None, units = None, d = None):
         '''
         Load data for animation
-            :param data: List of masked arrays, where each one contains a certain quantity.
-            :param lons: Longitude coordinates as vector or matrix with same sized lats matrix.
-            :param lats: Latitude coordinates as vector or matrix with same sized lons matrix.
-            :param keys: Quantity label (Oxygen, Nitrate, Phosphate, ...).
-            :param units: Unit of the displayed quantity as a list of strings.
-            :param d: List of time date entries. Will be plotted after date on the animation.
-            :return: nothing
+             data: List of masked arrays, where each one contains a certain quantity.
+             lons: Longitude coordinates as vector or matrix with same sized lats matrix.
+             lats: Latitude coordinates as vector or matrix with same sized lons matrix.
+             keys: Quantity label (Oxygen, Nitrate, Phosphate, ...).
+             units: Unit of the displayed quantity as a list of strings.
+             d: List of time date entries. Will be plotted after date on the animation.
+            return: nothing
         '''
         # Load content
         if isinstance(data, np.ndarray) and len(data.shape) == 4:
@@ -342,13 +401,16 @@ class TimeSeries():
        max_data_value = None, min_data_value = None, start_frame = None, end_frame = None, skip_frames = None):
         '''
         Create animation with the data given at init
-            :param max_data_value: Maximal value of each plot e.g. [21, 380, 290, 18]
-            :param min_data_value: Minimal value of each plot e.g. [0, 180, 0, 0]
-
-            :param number_of_contour_levels: Number of colours/contour levels to be displayed
-            :param n_rows: Amount of subplots in a row
-            :param n_cols: Amount of subplots in a column
-            :return: nothing
+            number_of_contour_levels: Number of colours/contour levels to be displayed
+            n_rows: Amount of subplots in a row
+            n_cols: Amount of subplots in a column
+            max_data_value: Maximal value of each plot e.g. [21, 380, 290, 18]
+            min_data_value: Minimal value of each plot e.g. [0, 180, 0, 0]
+            start_frame: Start from frame number e.g. 0
+            end_frame: Start from frame number e.g. len(labels[:,0,0])
+            skip_frames: Amount of frames -1 to skip between every displayed image e.g. 1 (no skipping)
+             
+            return: nothing
         '''
 
         # Check on given input
@@ -405,9 +467,9 @@ class TimeSeries():
     def saveAnimation(self, fps = 8, name = 'toLazytoName'):
         '''
         Save animation after computing it with createAnimation
-            :param fps: Amount of frames displayed each second in the video e.g. 10.
-            :param name: Name of the video. Is stored depending on the call path of the object.
-            :return: nothing
+             fps: Amount of frames displayed each second in the video e.g. 10.
+             name: Name of the video. Is stored depending on the call path of the object.
+            return: nothing
         '''
         if not hasattr(self, 'ani'):
             print("No animation available. Please call createAnimation on the object before saving it.")
