@@ -179,12 +179,7 @@ def __main__():
     sat1 = SateliteData(chl_path)
     #sat2 = SateliteData('dataset-SPM-satellite-monthly.nc')
 
-<<<<<<< HEAD
-    # plt.imshow(sat1.data[200,:,:])
-    # plt.show()
-=======
     
->>>>>>> 17a1c42aee026cda3c65ceb8188bbf0b1c607bd7
     myAnimation = SateliteTimeSeries(sat1)
 
     max_data_value = [10, 10]
@@ -197,7 +192,6 @@ def __main__():
 
     myAnimation.saveAnimation(fps = 8, name = 'toLazytoName2')
 
-<<<<<<< HEAD
     # lons, lats = np.meshgrid(sat1.lons, sat1.lats)
     # lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
     # lons_lats[:,:,0] = lons
@@ -208,18 +202,6 @@ def __main__():
     # geographic_plot(sat1.data[timestep,:,:], lons_lats, key = sat1.keys+' (Sat)',\
     #   unit = sat1.unit, date = sat1.times[timestep], minVal = None,\
     #   maxVal = 0.5*np.nanmax(sat1.data[timestep,:,:]), adjustBorder = False)
-=======
-    lons, lats = np.meshgrid(sat1.lons, sat1.lats)
-    lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
-    lons_lats[:,:,0] = lons
-    lons_lats[:,:,1] = lats
-
-    timestep = 5000
-
-    geographic_plot(sat1.data[timestep,:,:], lons_lats, key = sat1.keys+' (Sat)',\
-       unit = sat1.unit, date = sat1.times[timestep], minVal = None,\
-       maxVal = 0.5*np.nanmax(sat1.data[timestep,:,:]), adjustBorder = False)
->>>>>>> 17a1c42aee026cda3c65ceb8188bbf0b1c607bd7
 
     timestep = 5000
 
