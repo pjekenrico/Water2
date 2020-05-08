@@ -172,10 +172,10 @@ def __main__():
     chl_path = 'dataset-CHL-satellite-daily.nc'
     spm_path = 'dataset-SPM-satellite-monthly.nc'
 
-    sat1 = SateliteData('dataset-CHL-satellite-daily.nc')
+    sat1 = SateliteData(chl_path)
     #sat2 = SateliteData('dataset-SPM-satellite-monthly.nc')
 
-
+    
     myAnimation = SateliteTimeSeries(sat1)
 
     max_data_value = [24, 10]
@@ -188,27 +188,27 @@ def __main__():
 
     myAnimation.saveAnimation(fps = 8, name = 'toLazytoName')
 
-    #lons, lats = np.meshgrid(sat1.lons, sat1.lats)
-    #lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
-    #lons_lats[:,:,0] = lons
-    #lons_lats[:,:,1] = lats
+    lons, lats = np.meshgrid(sat1.lons, sat1.lats)
+    lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
+    lons_lats[:,:,0] = lons
+    lons_lats[:,:,1] = lats
 
-    #timestep = 5000
+    timestep = 5000
 
-    #geographic_plot(sat1.data[timestep,:,:], lons_lats, key = sat1.keys+' (Sat)',\
-    #   unit = sat1.unit, date = sat1.times[timestep], minVal = None,\
-    #   maxVal = 0.5*np.nanmax(sat1.data[timestep,:,:]), adjustBorder = False)
+    geographic_plot(sat1.data[timestep,:,:], lons_lats, key = sat1.keys+' (Sat)',\
+       unit = sat1.unit, date = sat1.times[timestep], minVal = None,\
+       maxVal = 0.5*np.nanmax(sat1.data[timestep,:,:]), adjustBorder = False)
 
-    #timestep = 5000
+    timestep = 5000
 
-    #lons, lats = np.meshgrid(sat1.RefSet.lons, sat1.RefSet.lats)
-    #lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
-    #lons_lats[:,:,0] = lons
-    #lons_lats[:,:,1] = lats
+    lons, lats = np.meshgrid(sat1.RefSet.lons, sat1.RefSet.lats)
+    lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
+    lons_lats[:,:,0] = lons
+    lons_lats[:,:,1] = lats
 
-    #geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = sat1.RefSet.keys,\
-    #   unit = sat1.RefSet.unit, date = sat1.RefSet.times[timestep], minVal = None,\
-    #   maxVal = 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:]), adjustBorder = False)
+    geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = sat1.RefSet.keys,\
+       unit = sat1.RefSet.unit, date = sat1.RefSet.times[timestep], minVal = None,\
+       maxVal = 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:]), adjustBorder = False)
 
 if __name__ == "__main__":
     __main__()
