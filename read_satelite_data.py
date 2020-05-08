@@ -88,7 +88,7 @@ class DataSet():
 class SateliteData(DataSet):
     def __init__(self, filename):
         super().__init__(filename)
-        self.RefSet = DataSet('MetO-NWS-BIO-dm-CHL.nc')
+        self.RefSet = DataSet('dataset-CHL-model-daily.nc')
 
         self.removeUnmatchingTime()
 
@@ -143,7 +143,6 @@ class SateliteData(DataSet):
             if np.all(alwaysMasked[:,i]):
                 rmRow.append(i)
 
-
         for idxToRemove in reversed(rmRow):
             self.data = self.data[:, np.arange(len(self.data[0,:,0])) != idxToRemove,:]
             self.lons = np.delete(self.lons, idxToRemove)
@@ -157,15 +156,20 @@ class SateliteData(DataSet):
         #    self.data[i,:,:].mask = ~alwaysFilled
 
     def reduceSizeSpace(self):
+        print("\nRemoving excess space...")
         # Cut out excessive spacial data
         minLon = findClose(self.lons, self.RefSet.lons[0], end = 'min')
-        maxLon = findClose(self.lons, self.RefSet.lons[-1], end = 'max')
-        minLat = findClose(self.lats, self.RefSet.lats[0], end = 'min')
+        maxLon = 270 #findClose(self.lons, self.RefSet.lons[-1], end = 'max')
+        minLat = 35 #findClose(self.lats, self.RefSet.lats[0], end = 'min')
         maxLat = findClose(self.lats, self.RefSet.lats[-1], end = 'max')
+        print(maxLat)
         self.data = self.data[:, minLat : maxLat, minLon : maxLon]
         self.lons = self.lons[minLon : maxLon]
         self.lats = self.lats[minLat : maxLat]
-
+        self.RefSet.data = self.RefSet.data[:, 1 : 54, :]
+        self.RefSet.lats = self.RefSet.lats[1 : 54]
+        # self.RefSet.lons = self.RefSet.lons[20 : 76, :]
+        # print(np.shape(self.RefSet.lats))
 
 
 def __main__():
@@ -175,10 +179,11 @@ def __main__():
     sat1 = SateliteData('dataset-CHL-satellite-daily.nc')
     #sat2 = SateliteData('dataset-SPM-satellite-monthly.nc')
 
-
+    # plt.imshow(sat1.data[200,:,:])
+    # plt.show()
     myAnimation = SateliteTimeSeries(sat1)
 
-    max_data_value = [24, 10]
+    max_data_value = [10, 10]
     min_data_value = [0, 0]
 
     # Create animation
@@ -186,16 +191,16 @@ def __main__():
         max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 100,\
         end_frame = 5000, skip_frames = 100)
 
-    myAnimation.saveAnimation(fps = 8, name = 'toLazytoName')
+    myAnimation.saveAnimation(fps = 8, name = 'toLazytoName2')
 
-    #lons, lats = np.meshgrid(sat1.lons, sat1.lats)
-    #lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
-    #lons_lats[:,:,0] = lons
-    #lons_lats[:,:,1] = lats
+    # lons, lats = np.meshgrid(sat1.lons, sat1.lats)
+    # lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
+    # lons_lats[:,:,0] = lons
+    # lons_lats[:,:,1] = lats
 
-    #timestep = 5000
+    # timestep = 4000
 
-    #geographic_plot(sat1.data[timestep,:,:], lons_lats, key = sat1.keys+' (Sat)',\
+    # geographic_plot(sat1.data[timestep,:,:], lons_lats, key = sat1.keys+' (Sat)',\
     #   unit = sat1.unit, date = sat1.times[timestep], minVal = None,\
     #   maxVal = 0.5*np.nanmax(sat1.data[timestep,:,:]), adjustBorder = False)
 
