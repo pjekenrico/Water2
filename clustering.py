@@ -365,7 +365,7 @@ chem = 1
 n_clusters = 4
 dbscan_eps = 4
 
-r_labels = region_clusters(data=av_matrix, lons_lats=lons_lats, n_clusters=4)
+# r_labels = region_clusters(data=av_matrix, lons_lats=lons_lats, n_clusters=4)
 
 # Uncomment one of the following to cluster
 
@@ -383,10 +383,10 @@ r_labels = region_clusters(data=av_matrix, lons_lats=lons_lats, n_clusters=4)
 #     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
 
 # Display and Save Animation
-# ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
-# ts.createAnimation(max_data_value=[
-#                    5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
-# ts.saveAnimation(name='clusters_Yearly_av')
+ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
+ts.createAnimation(max_data_value=[
+                   5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
+ts.saveAnimation(name='clusters_Yearly_av')
 
 
 # Plot cluster labels geographically

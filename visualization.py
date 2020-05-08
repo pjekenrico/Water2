@@ -334,7 +334,7 @@ class TimeSeries():
         # Check if a date is given
         if d is None:
             self.d = list()
-            for i in range(len(data[0])):
+            for i in range(len(data)):
                 self.d.append(i)
         else:
             self.d = d
