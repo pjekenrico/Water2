@@ -71,7 +71,7 @@ def silhouette_plot(labels, data, name_model, plotGraph = False):
 
     return s_avg
 
-def geographic_plot(data, lons_lats = None, key = None, unit = None, date = None, minVal = None, maxVal = None, adjustBorder = True):
+def geographic_plot(data, lons_lats = None, levels = 5, key = None, unit = None, date = None, minVal = None, maxVal = None, adjustBorder = True):
     '''
         Plot single data frames.
 
@@ -116,7 +116,7 @@ def geographic_plot(data, lons_lats = None, key = None, unit = None, date = None
         data = data*(data <= maxVal)*(data >= minVal) + minVal*(data <= minVal) + maxVal*(data >= maxVal)
 
     # Plot data
-    cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, 50,\
+    cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, levels,\
        cmap=cm.rainbow, transform=ccrs.PlateCarree())
 
     # Add date
@@ -391,8 +391,12 @@ class TimeSeries():
         # Check if a date is given
         if d is None:
             self.d = list()
-            for i in range(len(data[0])):
-                self.d.append(i)
+            if isinstance(data,list):
+                for i in range(len(data[0])):
+                    self.d.append(i)
+            else:
+                for i in range(len(data)):
+                    self.d.append(i)
         else:
             self.d = d
 
