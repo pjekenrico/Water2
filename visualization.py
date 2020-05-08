@@ -1,5 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
-import os, netCDF4, string
+import os
+import netCDF4
+import string
 from netCDF4 import Dataset
 import numpy as np
 import datetime as dt
@@ -10,9 +12,7 @@ import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from matplotlib import cm
 
-
-
-def geographic_plot(data, lons_lats = None, key = None, unit = None, date = None, minVal = None, maxVal = None, adjustBorder = True):
+def geographic_plot(data, lons_lats=None, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True):
     '''
         Plot single data frames.
 
@@ -26,23 +26,22 @@ def geographic_plot(data, lons_lats = None, key = None, unit = None, date = None
         param maxVal: (float) Uower bound for the value range. Larger values are capped at maxVal.
     '''
 
-
     # Plotting the clusters
-    fig = plt.figure(figsize = (12,8))
-    ax = plt.axes(projection = ccrs.Mercator())
+    fig = plt.figure(figsize=(12, 8))
+    ax = plt.axes(projection=ccrs.Mercator())
 
     # Put a background image on for nice sea rendering.
     ax.stock_img()
 
     # High resolution map features
     ax.coastlines(resolution='10m')
-    ax.add_feature(cfeature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land', '10m'),\
-        linestyle=':', facecolor = 'none', edgecolor = 'black')
-    ax.add_feature(cfeature.NaturalEarthFeature('physical', 'rivers_lake_centerlines', '10m'),\
-        facecolor = 'none', edgecolor = 'blue')
+    ax.add_feature(cfeature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land', '10m'),
+                   linestyle=':', facecolor='none', edgecolor='black')
+    ax.add_feature(cfeature.NaturalEarthFeature('physical', 'rivers_lake_centerlines', '10m'),
+                   facecolor='none', edgecolor='blue')
 
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
-                     linewidth=1, color='gray', alpha=0.5, linestyle='--')
+                      linewidth=1, color='gray', alpha=0.5, linestyle='--')
     gl.xformatter = LONGITUDE_FORMATTER
     gl.yformatter = LATITUDE_FORMATTER
     gl.xlabels_top = False
@@ -54,33 +53,34 @@ def geographic_plot(data, lons_lats = None, key = None, unit = None, date = None
     elif minVal is None and not maxVal is None:
         data = data*(data <= maxVal) + maxVal*(data >= maxVal)
     elif not maxVal is None and not minVal is None:
-        data = data*(data <= maxVal)*(data >= minVal) + minVal*(data <= minVal) + maxVal*(data >= maxVal)
+        data = data*(data <= maxVal)*(data >= minVal) + minVal * \
+            (data <= minVal) + maxVal*(data >= maxVal)
 
     # Plot data
-    cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, 50,\
-       cmap=cm.rainbow, transform=ccrs.PlateCarree())
+    cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, 50,
+                      cmap=cm.rainbow, transform=ccrs.PlateCarree())
 
     # Add date
     if not date is None:
-        ax.text(0.8, 1.02, "{}".format("Date : "+ str(date)),\
-                                transform=ax.transAxes, fontdict=dict(color="black", size=14))
+        ax.text(0.8, 1.02, "{}".format("Date : " + str(date)),
+                transform=ax.transAxes, fontdict=dict(color="black", size=14))
 
     # Fix lats and lons to the given lons_lats instead of some reduced size based on the values of data
     if not adjustBorder:
-        ax.set_extent([np.min(lons_lats[:, :, 0]),np.max(lons_lats[:, :, 0]),\
-            np.min(lons_lats[:, :, 1]),np.max(lons_lats[:, :, 1])], crs=ccrs.PlateCarree())
+        ax.set_extent([np.min(lons_lats[:, :, 0]), np.max(lons_lats[:, :, 0]),
+                       np.min(lons_lats[:, :, 1]), np.max(lons_lats[:, :, 1])], crs=ccrs.PlateCarree())
 
     cs.set_clim(np.nanmin(data), np.nanmax(data))
 
     # Add Colorbar
-    cbar = fig.colorbar(cs, ax = ax, fraction=0.046, pad=0.04)
+    cbar = fig.colorbar(cs, ax=ax, fraction=0.046, pad=0.04)
 
     if not unit is None:
         cbar.ax.set_ylabel(unit)
 
     if not key is None:
-        ax.text(0.0, 1.02, "{}".format("Quantity: "+ key),\
-                     transform=ax.transAxes, fontdict=dict(color="black", size=14))
+        ax.text(0.0, 1.02, "{}".format("Quantity: " + key),
+                transform=ax.transAxes, fontdict=dict(color="black", size=14))
 
     plt.show()
 
@@ -114,6 +114,7 @@ def clean_up_artists(axis, artist_list):
         except (AttributeError, ValueError):
             pass
 
+
 def trim_axs(axs, N):
     """Little helper to reshape the axis list to have correct length..."""
     try:
@@ -124,8 +125,9 @@ def trim_axs(axs, N):
     except:
         return[axs]
 
-def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
-                    number_of_contour_levels, v_min, v_max,changed_artists, d, keys, units):
+
+def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,
+                number_of_contour_levels, v_min, v_max, changed_artists, d, keys, units):
     """
     Update the the contour plots of the time step 'frame_index'
 
@@ -165,9 +167,9 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
             # Draw the field data from the multidimensional data array
             if isinstance(data_list[nr_subplot], np.ma.core.MaskedArray):
                 if len(data_list[nr_subplot].shape) == 3:
-                    data_2d = data_list[nr_subplot][frame_index,:,:]
+                    data_2d = data_list[nr_subplot][frame_index, :, :]
                 else:
-                    data_2d = data_list[nr_subplot][frame_index,0]
+                    data_2d = data_list[nr_subplot][frame_index, 0]
             elif isinstance(data_list[nr_subplot], np.ndarray):
                 data_2d = data_list[nr_subplot][frame_index]
             else:
@@ -176,26 +178,25 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
             # Set map with coastlines and borders (uncomment for quicker processing...)
             if frame_index < 0:
                 ax.coastlines(resolution='10m')
-                ax.add_feature(cfeature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land', '10m'),\
-                    linestyle=':', facecolor = 'none', edgecolor = 'black')
-                ax.add_feature(cfeature.NaturalEarthFeature('physical', 'rivers_lake_centerlines', '10m'),\
-                    facecolor = 'none', edgecolor = 'blue')
-                
+                ax.add_feature(cfeature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land', '10m'),
+                               linestyle=':', facecolor='none', edgecolor='black')
+                ax.add_feature(cfeature.NaturalEarthFeature('physical', 'rivers_lake_centerlines', '10m'),
+                               facecolor='none', edgecolor='blue')
 
             # Gridlines require an update at every iteration and slow down the simulation a lot.
             # Uncomment to have gridlines
-            #gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,\
+            # gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,\
             #                    linewidth=1, color='gray', alpha=0.5, linestyle='--')
             #gl.xformatter = LONGITUDE_FORMATTER
             #gl.yformatter = LATITUDE_FORMATTER
             #gl.xlabels_top = False
             #gl.ylabels_right = False
 
-            ## Remove redundant axes
-            #if i_row == n_rows-1:
+            # Remove redundant axes
+            # if i_row == n_rows-1:
             #    gl.ylabels_left = False
 
-            #if j_col == 0:
+            # if j_col == 0:
             #    gl.xlabels_bottom = False
 
             # Set value boundaries
@@ -209,23 +210,25 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
                 data_max = v_max[nr_subplot]
 
             # Set the contour levels belonging to this subplot
-            levels = np.linspace(data_min, data_max, number_of_contour_levels+1, endpoint=True)
+            levels = np.linspace(data_min, data_max,
+                                 number_of_contour_levels+1, endpoint=True)
 
             # Cap data at set limits (otherwise values appear white)
             if ~np.isnan(data_2d).any():
                 data_2d = data_2d*(data_2d <= v_max[nr_subplot])*(data_2d >= v_min[nr_subplot])\
-                                             + v_min[nr_subplot]*(data_2d <= v_min[nr_subplot])\
-                                             + v_max[nr_subplot]*(data_2d >= v_max[nr_subplot])
+                    + v_min[nr_subplot]*(data_2d <= v_min[nr_subplot])\
+                    + v_max[nr_subplot] * \
+                    (data_2d >= v_max[nr_subplot])
 
             # Create the contour plot
             if isinstance(lons, list):
-                cs = ax.contourf(lons[nr_subplot], lats[nr_subplot], data_2d, levels=levels, cmap=cm.rainbow, zorder=0,\
-                     transform = ccrs.PlateCarree())
-                ax.set_extent([np.min(lons[nr_subplot]),np.max(lons[nr_subplot]),\
-                        np.min(lats[nr_subplot]),np.max(lats[nr_subplot])], crs=ccrs.PlateCarree())
+                cs = ax.contourf(lons[nr_subplot], lats[nr_subplot], data_2d, levels=levels, cmap=cm.rainbow, zorder=0,
+                                 transform=ccrs.PlateCarree())
+                ax.set_extent([np.min(lons[nr_subplot]), np.max(lons[nr_subplot]),
+                               np.min(lats[nr_subplot]), np.max(lats[nr_subplot])], crs=ccrs.PlateCarree())
             else:
-                cs = ax.contourf(lons, lats, data_2d, levels=levels, cmap=cm.rainbow, zorder=0,\
-                     transform = ccrs.PlateCarree())
+                cs = ax.contourf(lons, lats, data_2d, levels=levels, cmap=cm.rainbow, zorder=0,
+                                 transform=ccrs.PlateCarree())
             cs.set_clim(v_min[nr_subplot], v_max[nr_subplot])
 
             # Store the contours artists to the list of artists belonging to the current axis
@@ -235,11 +238,11 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
             if i_row == n_rows-1 and j_col == 0:
                 # Set a label to show the current time
                 if isinstance(d[0], list):
-                    time_text = ax.text(0.6, 1.05, "{}".format("Date : "+ str(d[nr_subplot][frame_index])),\
-                                transform=ax.transAxes, fontdict=dict(color="black", size=14))
+                    time_text = ax.text(0.6, 1.05, "{}".format("Date : " + str(d[nr_subplot][frame_index])),
+                                        transform=ax.transAxes, fontdict=dict(color="black", size=14))
                 else:
-                    time_text = ax.text(0.6, 1.05, "{}".format("Date : "+ str(d[frame_index])),\
-                                transform=ax.transAxes, fontdict=dict(color="black", size=14))
+                    time_text = ax.text(0.6, 1.05, "{}".format("Date : " + str(d[frame_index])),
+                                        transform=ax.transAxes, fontdict=dict(color="black", size=14))
 
                 # Store the artist of this label in the changed artist list
                 changed_artists[nr_subplot].append(time_text)
@@ -248,23 +251,21 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,\
             if frame_index < 0 and None not in v_max and None not in v_min:
                 cbar = fig.colorbar(cs, ax=ax, fraction=0.046, pad=0.04)
                 cbar.ax.set_ylabel(units[nr_subplot])
-                ax.text(0.0, 1.02, "{}".format("Quantity: "+ keys[nr_subplot]),\
-                           transform=ax.transAxes, fontdict=dict(color="blue", size=12))
+                ax.text(0.0, 1.02, "{}".format("Quantity: " + keys[nr_subplot]),
+                        transform=ax.transAxes, fontdict=dict(color="blue", size=12))
 
             if frame_index < -1 and isinstance(lons, list):
-                ax.set_extent([np.min(lons[nr_subplot]),np.max(lons[nr_subplot]),\
-                    np.min(lats[nr_subplot]),np.max(lats[nr_subplot])], crs=ccrs.PlateCarree())
+                ax.set_extent([np.min(lons[nr_subplot]), np.max(lons[nr_subplot]),
+                               np.min(lats[nr_subplot]), np.max(lats[nr_subplot])], crs=ccrs.PlateCarree())
 
             nr_subplot += 1
 
     return changed_artists
 
 
-
-
 class TimeSeries():
 
-    def __init__(self, data, lons = None, lats = None, keys = None, units = None, d = None):
+    def __init__(self, data, lons=None, lats=None, keys=None, units=None, d=None):
         '''
         Load data for animation
             :param data: List of masked arrays, where each one contains a certain quantity.
@@ -277,7 +278,8 @@ class TimeSeries():
         '''
         # Load content
         if isinstance(data, np.ndarray) and len(data.shape) == 4:
-            self.data = [data[:,:,:,i] for i in range(len(data[0,0,0,:]))]
+            self.data = [data[:, :, :, i]
+                         for i in range(len(data[0, 0, 0, :]))]
         elif isinstance(data, np.ndarray) and len(data.shape) == 3:
             self.data = [data]
         else:
@@ -285,21 +287,22 @@ class TimeSeries():
 
         # If no coordinates are given create normal integer mesh
         if lons is None and lats is None:
-            [self.lons, self.lats] = np.meshgrid(np.arange(data[0].shape[0]),np.arange(data[0].shape[1]))
+            [self.lons, self.lats] = np.meshgrid(
+                np.arange(data[0].shape[0]), np.arange(data[0].shape[1]))
         # Read in mesh as [:,:,0-1] mesh
         elif lats is None:
-            self.lons = lons[:,:,0]
-            self.lats = lons[:,:,1]
+            self.lons = lons[:, :, 0]
+            self.lats = lons[:, :, 1]
         elif lons is None:
-            self.lons = lats[:,:,0]
-            self.lats = lats[:,:,1]
+            self.lons = lats[:, :, 0]
+            self.lats = lats[:, :, 1]
         elif isinstance(lons, list) and isinstance(lats, list):
             self.lons = list()
             self.lats = list()
-            [tmp1, tmp2] = np.meshgrid(lons[0],lats[0])
+            [tmp1, tmp2] = np.meshgrid(lons[0], lats[0])
             self.lons.append(tmp1)
             self.lats.append(tmp2)
-            [tmp1, tmp2] = np.meshgrid(lons[1],lats[1])
+            [tmp1, tmp2] = np.meshgrid(lons[1], lats[1])
             self.lons.append(tmp1)
             self.lats.append(tmp2)
         else:
@@ -310,8 +313,7 @@ class TimeSeries():
                 self.lons = lons
                 self.lats = lats
             except IndexError:
-                [self.lons, self.lats] = np.meshgrid(lons,lats)
-
+                [self.lons, self.lats] = np.meshgrid(lons, lats)
 
         # Check if keys are given
         if keys is None:
@@ -336,10 +338,8 @@ class TimeSeries():
                 self.d.append(i)
         else:
             self.d = d
-
-
-    def createAnimation(self, number_of_contour_levels = 10, n_rows = 2, n_cols = 2,\
-       max_data_value = None, min_data_value = None, start_frame = None, end_frame = None, skip_frames = None):
+    def createAnimation(self, number_of_contour_levels=10, n_rows=2, n_cols=2,
+                        max_data_value=None, min_data_value=None, start_frame=None, end_frame=None, skip_frames=None):
         '''
         Create animation with the data given at init
             :param max_data_value: Maximal value of each plot e.g. [21, 380, 290, 18]
@@ -353,8 +353,8 @@ class TimeSeries():
 
         # Check on given input
         if n_rows * n_cols != len(self.data):
-            print("Amount of intended subplots ({}·{}) does not match the amount of data sets given ({})".format(n_rows,n_cols,len(self.data)))
-
+            print("Amount of intended subplots ({}·{}) does not match the amount of data sets given ({})".format(
+                n_rows, n_cols, len(self.data)))
 
         # Set frame control
         if start_frame is None or (start_frame > len(self.d) and len(self.d) != 2):
@@ -364,45 +364,42 @@ class TimeSeries():
             end_frame = len(self.d)
 
         if skip_frames is None or (skip_frames > len(self.d) and len(self.d) != 2):
-            skip_frames = 1 # 1 - no skipping
+            skip_frames = 1  # 1 - no skipping
 
-        frames = range(start_frame,end_frame,skip_frames)
-
+        frames = range(start_frame, end_frame, skip_frames)
 
         # For automatic scaling (Not recommended...)
         if max_data_value is None:
             max_data_value = [np.max(dataSet) for dataSet in self.data]
         if min_data_value is None:
-            min_data_value = [np.max((0,np.min(dataSet))) for dataSet in self.data]
-
+            min_data_value = [np.max((0, np.min(dataSet)))
+                              for dataSet in self.data]
 
         # Figure setup
-        fig, axis = plt.subplots(nrows=n_rows, ncols=n_cols, sharex=True, sharey=True,\
-           figsize=(14,8), subplot_kw={'projection': ccrs.Mercator()})
+        fig, axis = plt.subplots(nrows=n_rows, ncols=n_cols, sharex=True, sharey=True,
+                                 figsize=(14, 8), subplot_kw={'projection': ccrs.Mercator()})
 
-        axis = trim_axs(axis, n_rows*n_cols)    
+        axis = trim_axs(axis, n_rows*n_cols)
         fig.subplots_adjust(wspace=0.15, left=0.05, right=0.95)
 
         changed_artists = list()
 
         # create first image by calling update_plot with frame_index = -1
-        changed_artists = update_plot(-1, self.data, self.lons, self.lats, fig, axis, n_cols, n_rows,\
-                number_of_contour_levels, min_data_value, max_data_value, changed_artists, self.d, self.keys, self.units)
+        changed_artists = update_plot(-1, self.data, self.lons, self.lats, fig, axis, n_cols, n_rows,
+                                      number_of_contour_levels, min_data_value, max_data_value, changed_artists, self.d, self.keys, self.units)
 
         print("\nProcessing animation...")
 
         # Call the animation function. The fargs argument equals the parameter list of update_plot,
         # except the 'frame_index' parameter.
-        self.ani = animation.FuncAnimation(fig, update_plot,frames=frames,
-                                           fargs=(self.data, self.lons, self.lats, fig, axis, n_cols, n_rows,\
-                                                number_of_contour_levels, min_data_value,\
-                                                max_data_value, changed_artists, self.d, self.keys, self.units),\
+        self.ani = animation.FuncAnimation(fig, update_plot, frames=frames,
+                                           fargs=(self.data, self.lons, self.lats, fig, axis, n_cols, n_rows,
+                                                  number_of_contour_levels, min_data_value,
+                                                  max_data_value, changed_artists, self.d, self.keys, self.units),
                                            blit=False, repeat=False)
 
         plt.show()
-
-
-    def saveAnimation(self, fps = 8, name = 'toLazytoName'):
+    def saveAnimation(self, fps=8, name='toLazytoName'):
         '''
         Save animation after computing it with createAnimation
             :param fps: Amount of frames displayed each second in the video e.g. 10.
@@ -410,7 +407,8 @@ class TimeSeries():
             :return: nothing
         '''
         if not hasattr(self, 'ani'):
-            print("No animation available. Please call createAnimation on the object before saving it.")
+            print(
+                "No animation available. Please call createAnimation on the object before saving it.")
         else:
             print("Saving animation...")
             Writer = animation.writers['ffmpeg']
@@ -418,30 +416,26 @@ class TimeSeries():
             self.ani.save(name+'.mp4', writer=writer)
 
 
-
-
-
-
 class SateliteTimeSeries(TimeSeries):
     '''
         Make an animation to compare satelite and normal data.
     '''
 
-    def __init__(self,satData):
+    def __init__(self, satData):
         from read_satelite_data import SateliteData
-        data = [satData.data,satData.RefSet.data]
-        lons = [satData.lons,satData.RefSet.lons]
-        lats = [satData.lats,satData.RefSet.lats]
-        keys = [satData.keys,satData.RefSet.keys]
-        units = [satData.unit,satData.RefSet.unit]
-        d = [satData.times,satData.RefSet.times]
+        data = [satData.data, satData.RefSet.data]
+        lons = [satData.lons, satData.RefSet.lons]
+        lats = [satData.lats, satData.RefSet.lats]
+        keys = [satData.keys, satData.RefSet.keys]
+        units = [satData.unit, satData.RefSet.unit]
+        d = [satData.times, satData.RefSet.times]
 
-        super().__init__(data, lons = lons, lats = lats, keys = keys, units = units, d = d)
+        super().__init__(data, lons=lons, lats=lats, keys=keys, units=units, d=d)
 
 
 # Example on how to use the visualization on raw data
 # When calling the class from a separate file import the class as:
-# 
+#
 # from visualization import TimeSeries
 #
 
@@ -451,13 +445,13 @@ def main():
 
     # Open the four data sets
     chl_path = os.path.abspath('MetO-NWS-BIO-dm-CHL.nc')
-    datasets.append(Dataset(chl_path, mode = 'r'))
+    datasets.append(Dataset(chl_path, mode='r'))
     doxy_path = os.path.abspath('MetO-NWS-BIO-dm-DOXY.nc')
-    datasets.append(Dataset(doxy_path, mode = 'r'))
+    datasets.append(Dataset(doxy_path, mode='r'))
     nitr_path = os.path.abspath('MetO-NWS-BIO-dm-NITR.nc')
-    datasets.append(Dataset(nitr_path, mode = 'r'))
+    datasets.append(Dataset(nitr_path, mode='r'))
     phos_path = os.path.abspath('MetO-NWS-BIO-dm-PHOS.nc')
-    datasets.append(Dataset(phos_path, mode = 'r'))
+    datasets.append(Dataset(phos_path, mode='r'))
 
     # Read quantity types (O2, PO4...) and note their units
     keys = list()
@@ -465,11 +459,11 @@ def main():
     keys.append(list(datasets[1].variables)[0])
     keys.append(list(datasets[2].variables)[0])
     keys.append(list(datasets[3].variables)[1])
-    units = ["$mg/m^3$","$mmol/m^3$","$mmol/m^3$","$mmol/m^3$"]
+    units = ["$mg/m^3$", "$mmol/m^3$", "$mmol/m^3$", "$mmol/m^3$"]
 
     # Read the measurment dates
     time = datasets[0].variables['time']
-    jd = netCDF4.num2date(time[:],time.units)
+    jd = netCDF4.num2date(time[:], time.units)
     d = list()
     for dd in jd:
         d.append(dt.date(dd.year, dd.month, dd.day))
@@ -479,7 +473,7 @@ def main():
     lats = datasets[0].variables['latitude'][:]
 
     # It is not necessary to calculate the meshgrid, the class can take both
-    # matrix or vector versions of the latitudes and longitudes... 
+    # matrix or vector versions of the latitudes and longitudes...
     # lons, lats = np.meshgrid(lons,lats)
 
     # Load data and close document
@@ -489,9 +483,9 @@ def main():
         datasets[i].close()
 
     # Or load precomputed data
-    #with np.load('model_data.npz') as m:
+    # with np.load('model_data.npz') as m:
     #    data = m['matrix']
-    #with np.load('lons_lats.npz') as ll:
+    # with np.load('lons_lats.npz') as ll:
     #    lons = ll['lons_lats']
     #lats = None
 
@@ -499,7 +493,8 @@ def main():
     #min_data_value = [0, 0, 0, 0]
 
     # Read data
-    myAnimation = TimeSeries(data, lons = lons, lats = lats, keys = keys, units = units, d = d)
+    myAnimation = TimeSeries(data, lons=lons, lats=lats,
+                             keys=keys, units=units, d=d)
 
     # Set visualization parameters
     # User defined value ranges (colour)
@@ -507,14 +502,15 @@ def main():
     min_data_value = [0, 220, 0, 0]
 
     # Create animation
-    myAnimation.createAnimation(number_of_contour_levels = 10, n_rows = 2, n_cols = 2,\
-       max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 1000,\
-      end_frame = 2000, skip_frames = 10)
+    myAnimation.createAnimation(number_of_contour_levels=10, n_rows=2, n_cols=2,
+                                max_data_value=max_data_value, min_data_value=min_data_value, start_frame=1000,
+                                end_frame=2000, skip_frames=10)
 
     # Save animation and view
     # Note that the playback speed of the animation shown via Python might
     # not be the same as the one of the stored video (depends on the GPU)
-    myAnimation.saveAnimation(fps = 8, name = 'toLazytoName')
+    myAnimation.saveAnimation(fps=8, name='toLazytoName')
+
 
 # Execute main only if the script is run directly
 if __name__ == "__main__":
