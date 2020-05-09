@@ -11,9 +11,10 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import sys
 import pickle
 from visualization import TimeSeries, geographic_plot
+from silhouette import silhouette_plot
 
 
-def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
+def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False):
     '''
     This function clusters spatially the data of a certain chemical through time and returns the clustered data
     and the labels organized saptially.
@@ -29,6 +30,7 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
     n_clusters: for kmeans and hierarchical, is the number of clusters
     dbscan_eps: for dbscan, the maximal neighboring distance
     metric:     for dbscan, the metric used for distance calculations
+    silhouette: plots the silohuette of the clusters (default False)
     '''
     data = None
 
@@ -72,18 +74,22 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
 
     # Saving lables in a spatial martix
     labels = np.full(data.shape[1:], np.nan)
+    straight_labels = np.full(len(straight_data), np.nan)
 
     for i in range(len(straight_data)):
         if clustered_data.labels_[i] >= 0:
             labels[coordinates[i][0], coordinates[i][1]
                    ] = clustered_data.labels_[i]
+            straight_labels[i] = clustered_data.labels_[i]
+            
+    s_avg = silhouette_plot(labels=straight_labels, data=straight_data, plotGraph=silhouette, n_clusters=n_clusters)
 
     del straight_data
 
-    return clustered_data, labels, cluster_sizes
+    return clustered_data, labels, cluster_sizes, s_avg
 
 
-def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
+def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False):
     '''
     This function clusters spatially the data at a certain timestep and returns the clustered data
     and the labels organized saptially.
@@ -95,6 +101,7 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
     n_clusters: for kmeans and hierarchical, is the number of clusters
     dbscan_eps: for dbscan, the maximal neighboring distance
     metric:     for dbscan, the metric used for distance calculations
+    silhouette: plots the silohuette of the clusters (default False)
     '''
     data = None
     if timestep == None:
@@ -136,18 +143,22 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
 
     # Saving lables in a spatial martix
     labels = np.full(data.shape[:-1], np.nan)
+    straight_labels = np.full(len(straight_data), np.nan)
 
     for i in range(len(straight_data)):
         if clustered_data.labels_[i] >= 0:
             labels[coordinates[i][0], coordinates[i][1]
                    ] = clustered_data.labels_[i]
+            straight_labels[i] = clustered_data.labels_[i]
+            
+    s_avg = silhouette_plot(labels=straight_labels, data=straight_data, plotGraph=silhouette, n_clusters=n_clusters)
 
     del straight_data
 
-    return clustered_data, labels, cluster_sizes
+    return clustered_data, labels, cluster_sizes, s_avg
 
 
-def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
+def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False):
     '''
     This function clusters the data of the selected chemicals timewise 
     and returns the clustered data and the labels.
@@ -164,6 +175,7 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
     n_clusters: for kmeans and hierarchical, is the number of clusters
     dbscan_eps: for dbscan, the maximal neighboring distance
     metric:     for dbscan, the metric used for distance calculations
+    silhouette: plots the silohuette of the clusters (default False)
     '''
     data = None
     if location != None:
@@ -209,10 +221,12 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
     for i in range(len(straight_data)):
         if clustered_data.labels_[i] >= 0:
             labels[i] = clustered_data.labels_[i]
+            
+    s_avg = silhouette_plot(labels=labels, data=straight_data, plotGraph=silhouette, n_clusters=n_clusters)
 
     del straight_data
 
-    return clustered_data, labels, cluster_sizes
+    return clustered_data, labels, cluster_sizes, s_avg
 
 
 def clustering(data=None, n_clusters=10, mode='kmeans', metric='euclidean', dbscan_epsilon=1):
@@ -355,15 +369,15 @@ with np.load('lons_lats.npz') as ll:
 # Average the data through time (if needed)
 # av_matrix = average_data(matrix=matrix, delta_t=30)
 # np.savez_compressed('av_model_data30.npz', matrix=av_matrix)
-with np.load('av_model_dataYearly.npz') as av_m:
+with np.load('av_model_data30.npz') as av_m:
     av_matrix = av_m['matrix']
 print("Finished fetching data")
 
 
 # Clustering variables
-tstep = 20
+tstep = 0
 chem = 1
-n_clusters = 4
+n_clusters = 5
 dbscan_eps = 4
 
 # r_labels = region_clusters(data=av_matrix, lons_lats=lons_lats, n_clusters=4)
@@ -371,16 +385,18 @@ dbscan_eps = 4
 # Uncomment one of the following to cluster
 
 # Clustering with kmeans
-# cl, labels = single_chemical_clustering(
-#     matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
+# cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=n_clusters, silhouette=True)
+# cl, labels, cs, s_avg = single_chemical_clustering(
+#     matrix=av_matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters, silhouette=True)
+cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="kmeans", n_clusters=n_clusters, silhouette=True)
 
 # Clustering with hierarchical/agglomeratative
-# cl, labels = timestep_clustering(matrix=matrix, timestep=tstep, mode="hierarchical", n_clusters=n_clusters)
-# cl, labels = single_chemical_clustering(matrix=matrix, chemical=chem, mode="hierarchical", n_clusters=n_clusters)
+# cl, labels, cs, s_avg = timestep_clustering(matrix=matrix, timestep=tstep, mode="hierarchical", n_clusters=n_clusters)
+# cl, labels, cs, s_avg = single_chemical_clustering(matrix=matrix, chemical=chem, mode="hierarchical", n_clusters=n_clusters)
 
 # Clustering with dbscan (kinda shit)
-# cl, labels = timestep_clustering(matrix=matrix, timestep=tstep, mode="dbscan", dbscan_eps=dbscan_eps)
-# cl, labels = single_chemical_clustering(
+# cl, labels, cs, s_avg = timestep_clustering(matrix=matrix, timestep=tstep, mode="dbscan", dbscan_eps=dbscan_eps)
+# cl, labels, cs, s_avg = single_chemical_clustering(
 #     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
 
 
@@ -396,14 +412,14 @@ dbscan_eps = 4
 # geographic_plot(data=data, lons_lats=lons_lats, key = '', unit = '', date = '', minVal = np.nanmin(data), maxVal = np.nanmax(data), adjustBorder = False)
 
 # Plot cluster labels through time
-cl, labels, s = timewise_clustering(matrix=av_matrix, n_clusters=n_clusters)
+# cl, labels, s = timewise_clustering(matrix=av_matrix, n_clusters=n_clusters)
 
-# Keeping relevant dates
-new_d = []
-for i in range(len(d)):
-    if i % 366 == 0:
-        new_d.append(d[i])
+# # Keeping relevant dates
+# new_d = []
+# for i in range(len(d)):
+#     if i % 366 == 0:
+#         new_d.append(d[i])
 
-new_d.pop()
+# new_d.pop()
 
-timeseries_plot(data=labels, t=new_d)
+# timeseries_plot(data=labels, t=new_d)
