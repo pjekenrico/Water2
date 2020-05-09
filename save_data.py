@@ -65,7 +65,7 @@ datasets = []
 mode = '0to1_dayly'
 
 # Loading data from datasets
-path_to_files = os.path.abspath('')+'\MetO-NWS-BIO-dm-'
+path_to_files = os.path.abspath('')+'\Andrea\MetO-NWS-BIO-dm-'
 #path_to_files = "C:/Users/andre/OneDrive/Desktop/TUD/Mathematical Data Science/Project/Water2/Andrea/MetO-NWS-BIO-dm-"
 extension = ".nc"
 

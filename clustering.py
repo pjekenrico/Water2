@@ -1,5 +1,6 @@
 import sklearn.cluster as cluster
 import numpy as np
+from scipy import stats
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -65,8 +66,9 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
             data=straight_data, n_clusters=n_clusters, mode='hierarchical')
 
     print("The " + str(n_clusters) + " cluster sizes are:")
-    print([len(list(compress(straight_data, clustered_data.labels_ == i)))
-           for i in range(n_clusters)])
+    cluster_sizes = [len(list(compress(straight_data, clustered_data.labels_ == i)))
+                     for i in range(n_clusters)]
+    print(cluster_sizes)
 
     # Saving lables in a spatial martix
     labels = np.full(data.shape[1:], np.nan)
@@ -78,7 +80,7 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
 
     del straight_data
 
-    return clustered_data, labels
+    return clustered_data, labels, cluster_sizes
 
 
 def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
@@ -128,8 +130,9 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
             data=straight_data, n_clusters=n_clusters, mode='hierarchical')
 
     print("The " + str(n_clusters) + " cluster sizes are:")
-    print([len(list(compress(straight_data, clustered_data.labels_ == i)))
-           for i in range(n_clusters)])
+    cluster_sizes = [len(list(compress(straight_data, clustered_data.labels_ == i)))
+                     for i in range(n_clusters)]
+    print(cluster_sizes)
 
     # Saving lables in a spatial martix
     labels = np.full(data.shape[:-1], np.nan)
@@ -141,7 +144,7 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
 
     del straight_data
 
-    return clustered_data, labels
+    return clustered_data, labels, cluster_sizes
 
 
 def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean'):
@@ -196,8 +199,9 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
             data=straight_data, n_clusters=n_clusters, mode='hierarchical')
 
     print("The " + str(n_clusters) + " cluster sizes are:")
-    print([len(list(compress(straight_data, clustered_data.labels_ == i)))
-           for i in range(n_clusters)])
+    cluster_sizes = [len(list(compress(straight_data, clustered_data.labels_ == i)))
+                     for i in range(n_clusters)]
+    print(cluster_sizes)
 
     # Saving lables in a spatial martix
     labels = np.full(len(straight_data), np.nan)
@@ -208,7 +212,7 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
 
     del straight_data
 
-    return clustered_data, labels
+    return clustered_data, labels, cluster_sizes
 
 
 def clustering(data=None, n_clusters=10, mode='kmeans', metric='euclidean', dbscan_epsilon=1):
@@ -305,18 +309,53 @@ def timeseries_plot(data=None, t=None):
     plt.show()
 
 
+def region_clusters(data=None, lons_lats=None, n_clusters=4):
+    labels = np.full(data.shape[:-1], np.nan)
+    for i in range(data.shape[0]):
+        cl, labels[i, :, :], cl_sizes = timestep_clustering(
+            matrix=data, timestep=i, mode="kmeans", n_clusters=n_clusters)
+        labels[i, :, :] = sort_clusters(
+            labels=labels[i, :, :], cluster_sizes=cl_sizes)
+
+    regions_labels = np.full(labels.shape[1:], np.nan)
+
+    for i in range(regions_labels.shape[0]):
+        for j in range(regions_labels.shape[1]):
+            regions_labels[i, j] = stats.mode(labels[:, i, j])[0]
+
+    geographic_plot(data=regions_labels, lons_lats=lons_lats)
+
+    return regions_labels
+
+
+def sort_clusters(labels=None, cluster_sizes=[]):
+    n_clusters = len(cluster_sizes)
+    new_labels = []
+    for i in range(n_clusters):
+        position = 0
+        for j in range(n_clusters):
+            if cluster_sizes[i] > cluster_sizes[j]:
+                position += 1
+        new_labels.append(position)
+
+    for i in range(n_clusters):
+        labels = np.where(labels == i, new_labels[i] + n_clusters, labels)
+
+    return labels - n_clusters
+
+
 # Loading already saved data (see save_data.py)
 print("Fetching data...")
 # with np.load('model_data.npz') as m:
 #     matrix = m['matrix']
 with open("datetimes.txt", "rb") as fp:   # Unpickling
     d = pickle.load(fp)
-# with np.load('lons_lats.npz') as ll:
-#     lons_lats = ll['lons_lats']
+with np.load('lons_lats.npz') as ll:
+    lons_lats = ll['lons_lats']
 # Average the data through time (if needed)
 # av_matrix = average_data(matrix=matrix, delta_t=30)
 # np.savez_compressed('av_model_data30.npz', matrix=av_matrix)
-with np.load('av_model_data30.npz') as av_m:
+with np.load('av_model_dataYearly.npz') as av_m:
     av_matrix = av_m['matrix']
 print("Finished fetching data")
 
@@ -324,19 +363,14 @@ print("Finished fetching data")
 # Clustering variables
 tstep = 20
 chem = 1
-n_clusters = 5
+n_clusters = 4
 dbscan_eps = 4
 
+# r_labels = region_clusters(data=av_matrix, lons_lats=lons_lats, n_clusters=4)
 
 # Uncomment one of the following to cluster
 
 # Clustering with kmeans
-
-#labels = labels = np.full(av_matrix.shape[:-1], np.nan)
-#for i in range(av_matrix.shape[0]):
-#    cl, labels[i, :, :] = timestep_clustering(
-#        matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_clusters)
-
 # cl, labels = single_chemical_clustering(
 #     matrix=matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters)
 
@@ -349,34 +383,25 @@ dbscan_eps = 4
 # cl, labels = single_chemical_clustering(
 #     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
 
+
 # Display and Save Animation
-#ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
-#ts.createAnimation(max_data_value=[
+# ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
+# ts.createAnimation(max_data_value=[
 #                    5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
-#ts.saveAnimation(name='clusters_100days_av')
+# ts.saveAnimation(name='clusters_Yearly_av')
 
 
 # Plot cluster labels geographically
 
-data = np.zeros((labels.shape))
-meanValueOverTime = np.mean(matrix[:,:,:,chem], axis = 0)
-
-for i in range(n_clusters):
-    meanValueCluster = np.mean(meanValueOverTime[labels == i])
-    data += meanValueCluster * (labels == i)
-
-data = np.ma.masked_array(data, data == 0)
-
-geographic_plot(data=data, lons_lats=lons_lats, key = '', unit = '', date = '', minVal = np.nanmin(data), maxVal = np.nanmax(data), adjustBorder = False)
+# geographic_plot(data=data, lons_lats=lons_lats, key = '', unit = '', date = '', minVal = np.nanmin(data), maxVal = np.nanmax(data), adjustBorder = False)
 
 # Plot cluster labels through time
-cl, labels = timewise_clustering(
-    matrix=av_matrix, n_clusters=n_clusters, mode='kmeans')
+cl, labels, s = timewise_clustering(matrix=av_matrix, n_clusters=n_clusters)
 
 # Keeping relevant dates
 new_d = []
 for i in range(len(d)):
-    if i % 30 == 0:
+    if i % 366 == 0:
         new_d.append(d[i])
 
 new_d.pop()
