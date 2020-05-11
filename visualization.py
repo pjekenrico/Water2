@@ -13,6 +13,23 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from matplotlib import cm
 
 
+def timeseries_plot(data=None, t=None):
+    '''
+    data:   labels
+    t:      dates
+    '''
+    for i in range(int(max(data))+1):
+        labels = []
+        time = []
+        for j in range(len(t)):
+            if data[j] == i:
+                labels.append(i)
+                time.append(t[j])
+        plt.plot_date(time, labels, markersize=4)
+    # plt.plot_date(t, data)
+    plt.show()
+
+
 def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True):
     '''
         Plot single data frames.
