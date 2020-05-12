@@ -11,7 +11,7 @@ from visualization import TimeSeries, geographic_plot
 from silhouette import silhouette_plot
 
 
-def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False):
+def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False, verbose=True):
     '''
     This function clusters spatially the data of a certain chemical through time and returns the clustered data
     and the labels organized saptially.
@@ -28,6 +28,7 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
     dbscan_eps: for dbscan, the maximal neighboring distance
     metric:     for dbscan, the metric used for distance calculations
     silhouette: plots the silohuette of the clusters (default False)
+    verbose:    displays additional information while cluatering
     '''
     data = None
 
@@ -55,19 +56,20 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
     # Clustering
     if mode == 'kmeans':
         clustered_data = clustering(
-            data=straight_data, n_clusters=n_clusters, mode='kmeans')
+            data=straight_data, n_clusters=n_clusters, mode='kmeans', verbose=verbose)
     elif mode == 'dbscan':
         clustered_data = clustering(
-            data=straight_data, mode='dbscan', metric=metric, dbscan_epsilon=dbscan_eps)
+            data=straight_data, mode='dbscan', metric=metric, dbscan_epsilon=dbscan_eps, verbose=verbose)
         n_clusters = max(clustered_data.labels_) + 1
     elif mode == 'hierarchical':
         clustered_data = clustering(
-            data=straight_data, n_clusters=n_clusters, mode='hierarchical')
+            data=straight_data, n_clusters=n_clusters, mode='hierarchical', verbose=verbose)
 
-    print("The " + str(n_clusters) + " cluster sizes are:")
     cluster_sizes = [len(list(compress(straight_data, clustered_data.labels_ == i)))
                      for i in range(n_clusters)]
-    print(cluster_sizes)
+    if verbose:
+        print("The " + str(n_clusters) + " cluster sizes are:")
+        print(cluster_sizes)
 
     # Saving lables in a spatial martix
     labels = np.full(data.shape[1:], np.nan)
@@ -100,6 +102,7 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
     dbscan_eps: for dbscan, the maximal neighboring distance
     metric:     for dbscan, the metric used for distance calculations
     silhouette: plots the silohuette of the clusters (default False)
+    verbose:    displays additional information while cluatering
     '''
     data = None
     if timestep == None:
@@ -159,7 +162,7 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
     return clustered_data, labels, cluster_sizes, s_avg
 
 
-def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False):
+def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False, verbose=True):
     '''
     This function clusters the data of the selected chemicals timewise 
     and returns the clustered data and the labels.
@@ -177,6 +180,7 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
     dbscan_eps: for dbscan, the maximal neighboring distance
     metric:     for dbscan, the metric used for distance calculations
     silhouette: plots the silohuette of the clusters (default False)
+    verbose:    displays additional information while cluatering
     '''
     data = None
     if location != None:
@@ -202,19 +206,20 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
     # Clustering
     if mode == 'kmeans':
         clustered_data = clustering(
-            data=straight_data, n_clusters=n_clusters, mode='kmeans')
+            data=straight_data, n_clusters=n_clusters, mode='kmeans', verbose=verbose)
     elif mode == 'dbscan':
         clustered_data = clustering(
-            data=straight_data, mode='dbscan', metric=metric, dbscan_epsilon=dbscan_eps)
+            data=straight_data, mode='dbscan', metric=metric, dbscan_epsilon=dbscan_eps, verbose=verbose)
         n_clusters = max(clustered_data.labels_) + 1
     elif mode == 'hierarchical':
         clustered_data = clustering(
-            data=straight_data, n_clusters=n_clusters, mode='hierarchical')
+            data=straight_data, n_clusters=n_clusters, mode='hierarchical', verbose=verbose)
 
-    print("The " + str(n_clusters) + " cluster sizes are:")
     cluster_sizes = [len(list(compress(straight_data, clustered_data.labels_ == i)))
-                     for i in range(n_clusters)]
-    print(cluster_sizes)
+                    for i in range(n_clusters)]
+    if verbose:
+        print("The " + str(n_clusters) + " cluster sizes are:")
+        print(cluster_sizes)
 
     # Saving lables in a spatial martix
     labels = np.full(len(straight_data), np.nan)
@@ -253,6 +258,7 @@ def clustering(data=None, n_clusters=10, mode='kmeans', metric='euclidean', dbsc
     elif mode == 'hierarchical':
         clusterer = cluster.AgglomerativeClustering(n_clusters=n_clusters)
         clusterer.fit(data)
+
     if verbose:
         print("Finished Clustering.")
     return clusterer

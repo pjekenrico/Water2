@@ -6,37 +6,37 @@ from sklearn.metrics import silhouette_score, silhouette_samples
 
 def silhouette_plot(labels=None, data=None, name_model='', plotGraph=False, n_clusters=0):
     '''Returns the silhouette metric and the respective graph (if required):
-    Receives three parameters:
+    Can receive five parameters:
         - labels: Labels of clustering model
         - data: data where the model is applied
-        - plotGraph (default False)
-        - name_model = Name of the evaluated model
+        - plotGraph: (default False)
+        - name_model: Name of the evaluated model
+        - n_clusters: number of clusters
 
     s_avg  : Average silhouette metric for the clustering model
     '''
-
-    # n_clusters = len(set(labels.tolist()))
+    # Handling of special numbers of clusters
     if n_clusters == 0:
         print('Error: 0 clusters')
         return 0
     elif n_clusters == 1:
         return 1
 
+    # Calculations
     s_samples = silhouette_samples(X=data, labels=labels)
     s_avg = silhouette_score(X=data, labels=labels)
 
+    # Plotting of the silhouettes
     if plotGraph:
         fig, ax = plt.subplots()
         fig.set_size_inches(8, 8)
         ax.set_xlim([-1, 1])
         ax.set_ylim([0, len(data) + (n_clusters + 1) * 10])
-        #ax.set_ylim([0, data.getnnz() + (n_clusters + 1)])
 
         y_lower = 10
         for i in range(n_clusters):
             # Aggregate the silhouette scores for samples belonging to
             # cluster i, and sort them
-            # ith_cluster_silhouette_values = s_samples[labels == i]
             ith_cluster_silhouette_values = np.array(list(compress(s_samples, labels == i)))
             ith_cluster_silhouette_values.sort()
 
