@@ -9,6 +9,9 @@ import pickle
 
 
 def generate_yearly_data():
+    '''
+    Generates the yearly data
+    '''
     with np.load('model_data.npz') as m:
         matrix = m['matrix']
     av_matrix = average_data(matrix=matrix, delta_t=366)
@@ -17,29 +20,13 @@ def generate_yearly_data():
     return av_matrix
 
 
-def region_clusters(data=None, lons_lats=None, n_regions=4):
-    labels = np.full(data.shape[:-1], np.nan)
-    s_scores = np.full(data.shape[0], np.nan)
-    for i in range(data.shape[0]):
-        cl, labels[i, :, :], cl_sizes, s_scores[i] = timestep_clustering(
-            matrix=data, timestep=i, mode="kmeans", n_clusters=n_regions, silhouette=True, verbose=False)
-        labels[i, :, :] = sort_clusters(
-            labels=labels[i, :, :], cluster_sizes=cl_sizes)
-
-    regions_labels = np.full(labels.shape[1:], np.nan)
-
-    for i in range(regions_labels.shape[0]):
-        for j in range(regions_labels.shape[1]):
-            regions_labels[i, j] = stats.mode(labels[:, i, j])[0]
-
-    geographic_plot(data=regions_labels,
-                    lons_lats=lons_lats, levels=n_regions-1)
-    print(s_scores)
-    return regions_labels, s_scores
-
-
 def region_calculation(n_regions=4, show_silhouette=True):
+    '''
+    Generates the regions
 
+    n_regions:          number of regions
+    show_silhouette:    default True
+    '''
     try:
         with np.load('av_model_dataYearly.npz') as av_m:
             av_matrix = av_m['matrix']
@@ -49,8 +36,23 @@ def region_calculation(n_regions=4, show_silhouette=True):
     with np.load('lons_lats.npz') as ll:
         lons_lats = ll['lons_lats']
 
-    region_labels, silhouette_scores = region_clusters(
-        data=av_matrix, lons_lats=lons_lats, n_regions=n_regions)
+    labels = np.full(av_matrix.shape[:-1], np.nan)
+    silhouette_scores = np.full(av_matrix.shape[0], np.nan)
+    for i in range(av_matrix.shape[0]):
+        cl, labels[i, :, :], cl_sizes, silhouette_scores[i] = timestep_clustering(
+            matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_regions, silhouette=True, verbose=False)
+        labels[i, :, :] = sort_clusters(
+            labels=labels[i, :, :], cluster_sizes=cl_sizes)
+
+    region_labels = np.full(labels.shape[1:], np.nan)
+
+    for i in range(region_labels.shape[0]):
+        for j in range(region_labels.shape[1]):
+            region_labels[i, j] = stats.mode(labels[:, i, j])[0]
+
+    geographic_plot(data=region_labels,
+                    lons_lats=lons_lats, levels=n_regions-1)
+    print(silhouette_scores)
 
     print('Silhouette Average: ', np.mean(silhouette_scores))
     if show_silhouette:
@@ -61,7 +63,17 @@ def region_calculation(n_regions=4, show_silhouette=True):
 
 
 def average_by_region(matrix=None, chemical=0, r_labels=None, n_regions=4):
+    '''
+    Generates the data of a chemical taking average by region (see region_calculation)
 
+    matrix:     data matrix
+    chemical:   0: CHL
+                1: DOXY
+                2: NITR
+                3: PHOS
+    r_labels:   region labels, different number for different region
+    n_regiond:  number of regions
+    '''
     data = np.full((matrix.shape[0], n_regions), np.nan)
 
     for i in range(matrix.shape[0]):
@@ -80,6 +92,7 @@ def average_by_region(matrix=None, chemical=0, r_labels=None, n_regions=4):
 def main():
     n_regions = 4
 
+    # Loading region data and calculate them if not saved
     try:
         with np.load('region_labels.npz') as r_labels:
             region_labels = r_labels['matrix']
@@ -95,11 +108,14 @@ def main():
         dates = pickle.load(fp)
     print('Finished Fetching Data')
 
+    # Clustering parameters
     mode = 'kmeans'
     n_clusters = 5
 
     data = []
     s_avg = []
+
+    # Clustering with regional average by chemical
     for i in range(4):
         data.append(average_by_region(matrix=av_matrix, chemical=i,
                                       r_labels=region_labels, n_regions=n_regions))

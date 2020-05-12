@@ -162,14 +162,12 @@ class SateliteData(DataSet):
         maxLon = 270 #findClose(self.lons, self.RefSet.lons[-1], end = 'max')
         minLat = 35 #findClose(self.lats, self.RefSet.lats[0], end = 'min')
         maxLat = findClose(self.lats, self.RefSet.lats[-1], end = 'max')
-        print(maxLat)
         self.data = self.data[:, minLat : maxLat, minLon : maxLon]
         self.lons = self.lons[minLon : maxLon]
         self.lats = self.lats[minLat : maxLat]
-        self.RefSet.data = self.RefSet.data[:, 1 : 54, :]
+        self.RefSet.data = self.RefSet.data[:, 1 : 54, 10:100]
         self.RefSet.lats = self.RefSet.lats[1 : 54]
-        # self.RefSet.lons = self.RefSet.lons[20 : 76, :]
-        # print(np.shape(self.RefSet.lats))
+        self.RefSet.lons = self.RefSet.lons[10 : 100]
 
 
 def __main__():
@@ -188,9 +186,9 @@ def __main__():
     # Create animation
     myAnimation.createAnimation(number_of_contour_levels = 20, n_rows = 1, n_cols = 2,\
         max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 100,\
-        end_frame = 5000, skip_frames = 100)
+        end_frame = 100, skip_frames = 100)
 
-    myAnimation.saveAnimation(fps = 8, name = 'toLazytoName2')
+    # myAnimation.saveAnimation(fps = 8, name = 'toLazytoName2')
 
     # lons, lats = np.meshgrid(sat1.lons, sat1.lats)
     # lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
@@ -210,9 +208,9 @@ def __main__():
     lons_lats[:,:,0] = lons
     lons_lats[:,:,1] = lats
 
-    geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = sat1.RefSet.keys,\
-       unit = sat1.RefSet.unit, date = sat1.RefSet.times[timestep], minVal = None,\
-       maxVal = 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:]), adjustBorder = False)
+    # geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = sat1.RefSet.keys,\
+    #    unit = sat1.RefSet.unit, date = sat1.RefSet.times[timestep], minVal = None,\
+    #    maxVal = 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:]), adjustBorder = False)
 
 if __name__ == "__main__":
     __main__()
