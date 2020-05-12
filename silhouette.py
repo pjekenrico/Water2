@@ -4,7 +4,7 @@ from matplotlib import cm
 from itertools import compress
 from sklearn.metrics import silhouette_score, silhouette_samples
 
-def silhouette_plot(labels=None, data=None, name_model='Model', plotGraph=False, n_clusters=0):
+def silhouette_plot(labels=None, data=None, name_model='', plotGraph=False, n_clusters=0):
     '''Returns the silhouette metric and the respective graph (if required):
     Receives three parameters:
         - labels: Labels of clustering model

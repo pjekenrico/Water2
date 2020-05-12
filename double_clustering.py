@@ -17,15 +17,14 @@ def generate_yearly_data():
     return av_matrix
 
 
-def region_clusters(data=None, lons_lats=None, n_regions=4, silhouette=False):
+def region_clusters(data=None, lons_lats=None, n_regions=4):
     labels = np.full(data.shape[:-1], np.nan)
     s_scores = np.full(data.shape[0], np.nan)
     for i in range(data.shape[0]):
         cl, labels[i, :, :], cl_sizes, s_scores[i] = timestep_clustering(
-            matrix=data, timestep=i, mode="kmeans", n_clusters=n_regions, silhouette=silhouette, verbose=False)
+            matrix=data, timestep=i, mode="kmeans", n_clusters=n_regions, silhouette=True, verbose=False)
         labels[i, :, :] = sort_clusters(
             labels=labels[i, :, :], cluster_sizes=cl_sizes)
-        print(i)
 
     regions_labels = np.full(labels.shape[1:], np.nan)
 
@@ -35,7 +34,7 @@ def region_clusters(data=None, lons_lats=None, n_regions=4, silhouette=False):
 
     geographic_plot(data=regions_labels,
                     lons_lats=lons_lats, levels=n_regions-1)
-
+    print(s_scores)
     return regions_labels, s_scores
 
 
@@ -51,7 +50,7 @@ def region_calculation(n_regions=4, show_silhouette=True):
         lons_lats = ll['lons_lats']
 
     region_labels, silhouette_scores = region_clusters(
-        data=av_matrix, lons_lats=lons_lats, n_regions=n_regions, silhouette=show_silhouette)
+        data=av_matrix, lons_lats=lons_lats, n_regions=n_regions)
 
     print('Silhouette Average: ', np.mean(silhouette_scores))
     if show_silhouette:
@@ -73,7 +72,7 @@ def average_by_region(matrix=None, chemical=0, r_labels=None, n_regions=4):
                     d[int(r_labels[j, k])][0] += matrix[i, j, k, chemical]
                     d[int(r_labels[j, k])][1] += 1
         for region in range(n_regions):
-            data[i,region] = d[region][0] / d[region][1]
+            data[i, region] = d[region][0] / d[region][1]
 
     return data
 
@@ -86,7 +85,7 @@ def main():
             region_labels = r_labels['matrix']
     except:
         region_labels = region_calculation(
-            n_regions=n_regions, show_silhouette=False)
+            n_regions=n_regions, show_silhouette=True)
         np.savez_compressed('region_labels.npz', matrix=region_labels)
 
     print('Fetching Data...')
@@ -100,25 +99,25 @@ def main():
     n_clusters = 5
 
     data = []
+    s_avg = []
     for i in range(4):
         data.append(average_by_region(matrix=av_matrix, chemical=i,
                                       r_labels=region_labels, n_regions=n_regions))
-        print(np.amin(data[i]), np.amax(data[i]))
         # Clustering
         if mode == 'kmeans':
             clustered_data = clustering(
-                data=data[i], n_clusters=n_clusters, mode='kmeans')
+                data=data[i], n_clusters=n_clusters, mode='kmeans', verbose=False)
         elif mode == 'hierarchical':
             clustered_data = clustering(
-                data=data[i], n_clusters=n_clusters, mode='hierarchical')
+                data=data[i], n_clusters=n_clusters, mode='hierarchical', verbose=False)
 
         print("The " + str(n_clusters) + " cluster sizes are:")
         cluster_sizes = [len(list(compress(data[i], clustered_data.labels_ == cluster)))
                          for cluster in range(n_clusters)]
         print(cluster_sizes)
 
-        s_avg = silhouette_plot(labels=clustered_data.labels_, data=data[i],
-                                plotGraph=True, n_clusters=n_clusters)
+        s_avg.append(silhouette_plot(labels=clustered_data.labels_,
+                                     data=data[i], plotGraph=False, n_clusters=n_clusters))
 
         # Keeping relevant dates
         new_d = []
@@ -129,6 +128,7 @@ def main():
         new_d.pop()
 
         timeseries_plot(data=clustered_data.labels_, t=new_d)
+    print(s_avg)
 
 
 if __name__ == "__main__":
