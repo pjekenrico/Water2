@@ -11,70 +11,26 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from matplotlib import cm
-from sklearn.metrics import silhouette_score, silhouette_samples
 
 
-def silhouette_plot(labels, data, name_model, plotGraph = False):
-    '''Returns the silhouette metric and the respective graph (if required):
-    Receives three parameters:
-        - labels: Labels of clustering model
-        - data: data where the model is applied
-        - plotGraph (default False)
-        - name_model = Name of the evaluated model
-
-    s_avg  : Average silhouette metric for the clustering model
+def timeseries_plot(data=None, t=None):
     '''
+    data:   labels
+    t:      dates
+    '''
+    for i in range(int(max(data))+1):
+        labels = []
+        time = []
+        for j in range(len(t)):
+            if data[j] == i:
+                labels.append(i)
+                time.append(t[j])
+        plt.plot_date(time, labels, markersize=4)
+    # plt.plot_date(t, data)
+    plt.show()
 
-    n_clusters = len(set(labels))
-    if n_clusters == 1:
-        return 1
 
-    s_samples = silhouette_samples(X = data, labels = labels)
-    s_avg = silhouette_score(X = data, labels = labels)
-
-    if plotGraph:
-        fig, ax = plt.subplots()
-        fig.set_size_inches(8, 8)
-        ax.set_xlim([-1, 1])
-        ax.set_ylim([0, len(data) + (n_clusters + 1) * 10])
-        #ax.set_ylim([0, data.getnnz() + (n_clusters + 1)])
-
-
-        y_lower = 10
-        for i in range(n_clusters):
-            # Aggregate the silhouette scores for samples belonging to
-            # cluster i, and sort them
-            ith_cluster_silhouette_values = s_samples[labels == i]
-            ith_cluster_silhouette_values.sort()
-
-            size_cluster_i = ith_cluster_silhouette_values.shape[0]
-
-            y_upper = y_lower + size_cluster_i
-
-            color = cm.nipy_spectral(float(i) / n_clusters)
-            ax.fill_betweenx(np.arange(y_lower, y_upper),
-                              0, ith_cluster_silhouette_values,
-                              facecolor=color, edgecolor=color, alpha=0.7)
-
-            # Label the silhouette plots with their cluster numbers at the middle
-            ax.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
-
-            # Compute the new y_lower for next plot
-            y_lower = y_upper + 10  # 10 for the 0 samples
-
-        # Adjust the plot
-        ax.set_title("Silhouette plot for the various clusters for the model " + name_model + ".\nAverage value: {}".format(s_avg))
-        ax.set_xlabel("Silhouette coefficient values")
-        ax.set_ylabel("Cluster label")
-        ax.axvline(x=s_avg, color="red", linestyle="--")
-        ax.set_yticks([])  # Clear the yaxis labels / ticks
-        ax.set_xticks([-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1])
-        plt.show()
-
-    return s_avg
-
-def geographic_plot(data, lons_lats = None, levels = 5, key = None, unit = None, date = None, minVal = None, maxVal = None, adjustBorder = True):
-
+def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True):
     '''
         Plot single data frames.
 
@@ -119,8 +75,8 @@ def geographic_plot(data, lons_lats = None, levels = 5, key = None, unit = None,
             (data <= minVal) + maxVal*(data >= maxVal)
 
     # Plot data
-    cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, levels,\
-       cmap=cm.rainbow, transform=ccrs.PlateCarree())
+    cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, levels,
+                      cmap=cm.rainbow, transform=ccrs.PlateCarree())
 
     # Add date
     if not date is None:
@@ -396,7 +352,7 @@ class TimeSeries():
         # Check if a date is given
         if d is None:
             self.d = list()
-            if isinstance(data,list):
+            if isinstance(data, list):
                 for i in range(len(data[0])):
                     self.d.append(i)
             else:
@@ -404,6 +360,7 @@ class TimeSeries():
                     self.d.append(i)
         else:
             self.d = d
+
     def createAnimation(self, number_of_contour_levels=10, n_rows=2, n_cols=2,
                         max_data_value=None, min_data_value=None, start_frame=None, end_frame=None, skip_frames=None):
         '''
@@ -416,7 +373,7 @@ class TimeSeries():
             start_frame: Start from frame number e.g. 0
             end_frame: Start from frame number e.g. len(labels[:,0,0])
             skip_frames: Amount of frames -1 to skip between every displayed image e.g. 1 (no skipping)
-             
+
             return: nothing
         '''
 
@@ -468,6 +425,7 @@ class TimeSeries():
                                            blit=False, repeat=False)
 
         plt.show()
+
     def saveAnimation(self, fps=8, name='toLazytoName'):
         '''
         Save animation after computing it with createAnimation
