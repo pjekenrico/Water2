@@ -8,7 +8,7 @@ from itertools import compress
 import sys
 import pickle
 from visualization import TimeSeries, geographic_plot
-from silhouette import silhouette_plot
+from silhouette import silhouette_plot, elbowPlot, plot_dendrogram
 
 
 def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False):
@@ -159,7 +159,7 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
     return clustered_data, labels, cluster_sizes, s_avg
 
 
-def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False):
+def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False, **kwargs):
     '''
     This function clusters the data of the selected chemicals timewise 
     and returns the clustered data and the labels.
@@ -202,36 +202,41 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
     # Clustering
     if mode == 'kmeans':
         clustered_data = clustering(
-            data=straight_data, n_clusters=n_clusters, mode='kmeans')
+            data=straight_data, n_clusters=n_clusters, mode='kmeans', **kwargs)
     elif mode == 'dbscan':
         clustered_data = clustering(
-            data=straight_data, mode='dbscan', metric=metric, dbscan_epsilon=dbscan_eps)
+            data=straight_data, mode='dbscan', metric=metric, dbscan_epsilon=dbscan_eps, **kwargs)
         n_clusters = max(clustered_data.labels_) + 1
     elif mode == 'hierarchical':
         clustered_data = clustering(
-            data=straight_data, n_clusters=n_clusters, mode='hierarchical')
+            data=straight_data, n_clusters=n_clusters, mode='hierarchical', **kwargs)
 
-    print("The " + str(n_clusters) + " cluster sizes are:")
-    cluster_sizes = [len(list(compress(straight_data, clustered_data.labels_ == i)))
-                     for i in range(n_clusters)]
-    print(cluster_sizes)
+    if not n_clusters is None:
+        print("The " + str(n_clusters) + " cluster sizes are:")
+        cluster_sizes = [len(list(compress(straight_data, clustered_data.labels_ == i)))
+                         for i in range(n_clusters)]
+        print(cluster_sizes)
 
-    # Saving lables in a spatial martix
-    labels = np.full(len(straight_data), np.nan)
+        # Saving lables in a spatial martix
+        labels = np.full(len(straight_data), np.nan)
 
-    for i in range(len(straight_data)):
-        if clustered_data.labels_[i] >= 0:
-            labels[i] = clustered_data.labels_[i]
+        for i in range(len(straight_data)):
+            if clustered_data.labels_[i] >= 0:
+                labels[i] = clustered_data.labels_[i]
 
-    s_avg = silhouette_plot(labels=labels, data=straight_data,
-                            plotGraph=silhouette, n_clusters=n_clusters)
+        s_avg = silhouette_plot(labels=labels, data=straight_data,
+                                plotGraph=silhouette, n_clusters=n_clusters)
+    else:
+        labels = []
+        cluster_sizes = []
+        s_avg = []
 
     del straight_data
 
     return clustered_data, labels, cluster_sizes, s_avg
 
 
-def clustering(data=None, n_clusters=10, mode='kmeans', metric='euclidean', dbscan_epsilon=1, verbose=True):
+def clustering(data=None, n_clusters=10, mode='kmeans', metric='euclidean', dbscan_epsilon=1, verbose=True, **kwargs):
     '''
     This function clusters the received data according to the parameters given
 
@@ -245,13 +250,13 @@ def clustering(data=None, n_clusters=10, mode='kmeans', metric='euclidean', dbsc
         print("Starting the Clustering Procedure, using mode: " + mode)
 
     if mode == 'kmeans':
-        clusterer = cluster.KMeans(n_clusters=n_clusters, init='k-means++')
+        clusterer = cluster.KMeans(n_clusters=n_clusters, init='k-means++', **kwargs)
         clusterer.fit(data)
     elif mode == 'dbscan':
-        clusterer = cluster.DBSCAN(eps=dbscan_epsilon, metric=metric)
+        clusterer = cluster.DBSCAN(eps=dbscan_epsilon, metric=metric, **kwargs)
         clusterer.fit(data)
     elif mode == 'hierarchical':
-        clusterer = cluster.AgglomerativeClustering(n_clusters=n_clusters)
+        clusterer = cluster.AgglomerativeClustering(n_clusters=n_clusters, **kwargs)
         clusterer.fit(data)
     if verbose:
         print("Finished Clustering.")
@@ -352,14 +357,28 @@ def main():
     # Uncomment one of the following to cluster
 
     # Clustering with kmeans
-    # cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=n_clusters, silhouette=True)
+
+    # cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=k, silhouette=False)
+
+
     # cl, labels, cs, s_avg = single_chemical_clustering(
     #     matrix=av_matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters, silhouette=True)
-    cl, labels, cs, s_avg = timewise_clustering(
-        matrix=av_matrix, mode="kmeans", n_clusters=n_clusters, silhouette=True)
+    
+
+    clusterNumbers = np.arange(2,20,1)
+    inertias = list()
+
+    for k in clusterNumbers:
+        cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="kmeans", n_clusters=k, silhouette=False)
+        inertias.append(cl.inertia_)
+
+    elbowPlot(inertiaVals = inertias, n_cluster = clusterNumbers)
 
     # Clustering with hierarchical/agglomeratative
-    # cl, labels, cs, s_avg = timestep_clustering(matrix=matrix, timestep=tstep, mode="hierarchical", n_clusters=n_clusters)
+    cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="hierarchical", n_clusters=None, silhouette=False, distance_threshold=0)
+
+    plot_dendrogram(cl, truncate_mode='level', p=5)
+
     # cl, labels, cs, s_avg = single_chemical_clustering(matrix=matrix, chemical=chem, mode="hierarchical", n_clusters=n_clusters)
 
     # Clustering with dbscan (kinda shit)

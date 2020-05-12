@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from itertools import compress
 from sklearn.metrics import silhouette_score, silhouette_samples
+from scipy.cluster.hierarchy import dendrogram
 
 def silhouette_plot(labels=None, data=None, name_model='', plotGraph=False, n_clusters=0):
     '''Returns the silhouette metric and the respective graph (if required):
@@ -65,3 +66,57 @@ def silhouette_plot(labels=None, data=None, name_model='', plotGraph=False, n_cl
         plt.show()
 
     return s_avg
+
+
+def elbowPlot(inertiaVals, n_cluster):
+
+    if isinstance(inertiaVals,list):
+        inertia = np.array(inertiaVals)
+    else:
+        inertia = inertiaVals
+
+    derivative2 = inertia[2:] -2*inertia[1:-1] + inertia[0:-2]
+
+    fig, ax = plt.subplots(1,2)
+    ax[0].plot(n_cluster,inertiaVals)
+    ax[1].plot(n_cluster[:-2],derivative2)
+
+    ax[0].set_title("Inertia Elbow method")
+    ax[1].set_title("Derivative Elbow method")
+
+    ax[0].grid('on')
+    ax[1].grid('on')
+
+    ax[0].set_xlabel('$n_{C}$')
+    ax[0].set_ylabel('$\sum^{n_{C}}_{i = 1}\sum^{n}_{j=1} min_{x_i \in C_i} ||x_j - \mu_i||^2$')
+    plt.show()
+
+
+
+def plot_dendrogram(model, **kwargs):
+    # Create linkage matrix and then plot the dendrogram
+
+    # create the counts of samples under each node
+    counts = np.zeros(model.children_.shape[0])
+    n_samples = len(model.labels_)
+    for i, merge in enumerate(model.children_):
+        current_count = 0
+        for child_idx in merge:
+            if child_idx < n_samples:
+                current_count += 1  # leaf node
+            else:
+                current_count += counts[child_idx - n_samples]
+        counts[i] = current_count
+
+    linkage_matrix = np.column_stack([model.children_, model.distances_,
+                                      counts]).astype(float)
+
+    # Plot the corresponding dendrogram
+    dendrogram(linkage_matrix, **kwargs)
+
+    plt.title('Hierarchical Clustering Dendrogram')
+    # plot the top three levels of the dendrogram
+    plt.xlabel("Number of points in cluster")
+    plt.axhline(y=0.25, color="tab:orange", linestyle="--")
+    plt.axhline(y=0.4, color="tab:orange", linestyle="--")
+    plt.show()
