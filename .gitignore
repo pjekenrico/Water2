@@ -12,6 +12,7 @@ __pycache__/
 .vs
 *.npz
 *.mp4
+settings.json
 datetimes.txt
 
 # Distribution / packaging
