@@ -10,6 +10,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from visualization import TimeSeries, SateliteTimeSeries, geographic_plot
+from clustering import sort_clusters, clustering, timestep_clustering
 
 
 def readSatData(path):
@@ -168,7 +169,8 @@ class SateliteData(DataSet):
         self.RefSet.data = self.RefSet.data[:, 1 : 54, 10:100]
         self.RefSet.lats = self.RefSet.lats[1 : 54]
         self.RefSet.lons = self.RefSet.lons[10 : 100]
-
+        print("Sat shape", np.shape(self.data))
+        print("Model shape", np.shape(self.RefSet.data))
 
 def __main__():
     chl_path = 'dataset-CHL-satellite-daily.nc'
@@ -176,17 +178,26 @@ def __main__():
 
     sat1 = SateliteData(chl_path)
     #sat2 = SateliteData('dataset-SPM-satellite-monthly.nc')
-
+    tstep = 4000
+    # clS, labelsS, csS, s_avgS = timestep_clustering(matrix=sat1.data[tstep,:,:], timestep=None, mode="kmeans", n_clusters=4, silhouette=False)
+    # clM, labelsM, csM, s_avgM = timestep_clustering(matrix=sat1.RefSet, timestep=tstep, mode="kmeans", n_clusters=4, silhouette=False)
     
+    lons, lats = np.meshgrid(sat1.RefSet.lons, sat1.RefSet.lats)
+    lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
+    lons_lats[:,:,0] = lons
+    lons_lats[:,:,1] = lats
     myAnimation = SateliteTimeSeries(sat1)
 
+    # tsS = TimeSeries(labelsS, lons_lats[:, :, 0], lons_lats[:, :, 1])
+    # tsS.createAnimation(max_data_value=[10], min_data_value=[0], n_rows=1, n_cols=1)
+    
     max_data_value = [10, 10]
     min_data_value = [0, 0]
 
     # Create animation
     myAnimation.createAnimation(number_of_contour_levels = 20, n_rows = 1, n_cols = 2,\
-        max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 100,\
-        end_frame = 100, skip_frames = 100)
+        max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 4000,\
+        end_frame = 4000, skip_frames = 100)
 
     # myAnimation.saveAnimation(fps = 8, name = 'toLazytoName2')
 
@@ -201,7 +212,7 @@ def __main__():
     #   unit = sat1.unit, date = sat1.times[timestep], minVal = None,\
     #   maxVal = 0.5*np.nanmax(sat1.data[timestep,:,:]), adjustBorder = False)
 
-    timestep = 5000
+    # timestep = 5000
 
     lons, lats = np.meshgrid(sat1.RefSet.lons, sat1.RefSet.lats)
     lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
