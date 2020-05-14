@@ -88,7 +88,7 @@ def elbowPlot(inertiaVals, n_cluster):
     ax[1].grid('on')
 
     ax[0].set_xlabel('$n_{C}$')
-    ax[0].set_ylabel('$\sum^{n_{C}}_{i = 1}\sum^{n}_{j=1} min_{x_i \in C_i} ||x_j - \mu_i||^2$')
+    ax[0].set_ylabel('$Inertia$')
     plt.show()
 
 
@@ -110,13 +110,17 @@ def plot_dendrogram(model, **kwargs):
 
     linkage_matrix = np.column_stack([model.children_, model.distances_,
                                       counts]).astype(float)
+    plt.figure(figsize = (12,8))
+    ax = plt.axes()
 
     # Plot the corresponding dendrogram
-    dendrogram(linkage_matrix, **kwargs)
+    dendrogram(linkage_matrix,leaf_rotation=0, **kwargs, ax = ax)
 
-    plt.title('Hierarchical Clustering Dendrogram')
-    # plot the top three levels of the dendrogram
-    plt.xlabel("Number of points in cluster")
-    plt.axhline(y=0.25, color="tab:orange", linestyle="--")
+    plt.title('Hierarchical Clustering Dendrogram', fontdict=dict(color="black", size=14))
+    plt.xlabel("Number of points in cluster", fontdict=dict(color="black", size=14))
+    plt.ylabel("$\epsilon$", fontdict=dict(color="black", size=16))
+    plt.axhline(y=0.23, color="tab:orange", linestyle="--", label = 'Feasible region')
     plt.axhline(y=0.4, color="tab:orange", linestyle="--")
+    plt.grid('on', which = 'minor', axis = 'y', color='gray', linestyle='--', linewidth=0.7, alpha = 0.5)
+    plt.legend()
     plt.show()

@@ -12,6 +12,7 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from visualization import TimeSeries, SateliteTimeSeries, geographic_plot
 from clustering import sort_clusters, clustering, timestep_clustering
 from global_land_mask import globe
+from scipy.interpolate import griddata
 
 
 def readSatData(path):
@@ -187,11 +188,20 @@ class SateliteData(DataSet):
         for k in range(len(self.data)):
             self.data[k].mask = isLand | self.data[k].mask
 
-        lats, lons = np.meshgrid(self.RefSet.lats, self.RefSet.lons)
-        isLand = globe.is_land(lats.T, lons.T)
+        latsRef, lonsRef = np.meshgrid(self.RefSet.lats, self.RefSet.lons)
+        isLand = globe.is_land(latsRef.T, lonsRef.T)
 
         for k in range(len(self.RefSet.data)):
             self.RefSet.data[k].mask = isLand | self.RefSet.data[k].mask
+
+        lats, lons = np.meshgrid(self.lons, self.lats)
+        latsRef, lonsRef = np.meshgrid(self.RefSet.lons, self.RefSet.lats)
+
+        newMask = griddata((lonsRef.flatten(), latsRef.flatten()), self.RefSet.data[0].mask.flatten(), (lons, lats), method='nearest')
+
+        for k in range(len(self.data)):
+            self.data[k].mask = newMask | self.data[k].mask
+
 
 
 
@@ -226,7 +236,7 @@ def __main__():
 
     geographic_plot(sat1.data[timestep,:,:], lons_lats, key = r'Chlorophyll a - Satelite data',\
         unit = r'$\frac{mg}{m^3}$', date = sat1.times[timestep], minVal = min_data_value[0],\
-        maxVal = max_data_value[0], adjustBorder = False, levels = 50)
+        maxVal = max_data_value[0], adjustBorder = True, levels = 50)
 
 
     lons, lats = np.meshgrid(sat1.RefSet.lons, sat1.RefSet.lats)
@@ -236,7 +246,7 @@ def __main__():
 
     geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = r'Chlorophyll a - Model data',\
         unit = r'$\frac{mg}{m^3}$', date = sat1.RefSet.times[timestep], minVal = min_data_value[1],\
-        maxVal = max_data_value[1], adjustBorder = False, levels = 50)
+        maxVal = max_data_value[1], adjustBorder = True, levels = 50)
 
 if __name__ == "__main__":
     __main__()
