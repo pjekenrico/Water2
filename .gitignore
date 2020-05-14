@@ -12,7 +12,7 @@ __pycache__/
 .vs
 *.npz
 *.mp4
-*.json
+settings.json
 datetimes.txt
 .vscode
 

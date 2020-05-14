@@ -10,6 +10,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from visualization import TimeSeries, SateliteTimeSeries, geographic_plot
+from clustering import sort_clusters, clustering, timestep_clustering
 from global_land_mask import globe
 
 
@@ -171,6 +172,8 @@ class SateliteData(DataSet):
         self.RefSet.data = self.RefSet.data[:, 1 : 54, 10:100]
         self.RefSet.lats = self.RefSet.lats[1 : 54]
         self.RefSet.lons = self.RefSet.lons[10 : 100]
+        print("Sat shape", np.shape(self.data))
+        print("Model shape", np.shape(self.RefSet.data))
 
     def removeLandPixels(self):
         # Remove values that are on mainland or lakes
