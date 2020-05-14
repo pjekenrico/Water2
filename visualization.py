@@ -49,7 +49,7 @@ def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=No
     ax = plt.axes(projection=ccrs.Mercator())
 
     # Put a background image on for nice sea rendering.
-    ax.stock_img()
+    #ax.stock_img()
 
     # High resolution map features
     ax.coastlines(resolution='10m')
@@ -74,9 +74,13 @@ def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=No
         data = data*(data <= maxVal)*(data >= minVal) + minVal * \
             (data <= minVal) + maxVal*(data >= maxVal)
 
+    data[0,0] = minVal
+    data[0,1] = maxVal
+
     # Plot data
     cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, levels,
                       cmap=cm.rainbow, transform=ccrs.PlateCarree())
+
 
     # Add date
     if not date is None:
@@ -85,21 +89,24 @@ def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=No
 
     # Fix lats and lons to the given lons_lats instead of some reduced size based on the values of data
     if not adjustBorder:
-        ax.set_extent([np.min(lons_lats[:, :, 0]), np.max(lons_lats[:, :, 0]),
-                       np.min(lons_lats[:, :, 1]), np.max(lons_lats[:, :, 1])], crs=ccrs.PlateCarree())
+        ax.set_extent([np.min(lons_lats[:, :, 0]), np.max(lons_lats[:, :, 0]),\
+                       np.min(lons_lats[:, :, 1]), np.max(lons_lats[:, :, 1])],\
+                       crs=ccrs.PlateCarree())
 
-    cs.set_clim(np.nanmin(data), np.nanmax(data))
+    if not maxVal is None and not minVal is None:
+        cs.set_clim(minVal, maxVal)
+    else:
+        cs.set_clim(np.nanmin(data), np.nanmax(data))
 
     # Add Colorbar
     cbar = fig.colorbar(cs, ax=ax, fraction=0.046, pad=0.04)
 
     if not unit is None:
-        cbar.ax.set_ylabel(unit)
+        cbar.ax.set_ylabel(unit, fontdict=dict(color="black", size=16))
 
     if not key is None:
         ax.text(0.0, 1.02, "{}".format("Quantity: " + key),
                 transform=ax.transAxes, fontdict=dict(color="black", size=14))
-
     plt.show()
 
 

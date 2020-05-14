@@ -11,6 +11,7 @@ import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from visualization import TimeSeries, SateliteTimeSeries, geographic_plot
 from clustering import sort_clusters, clustering, timestep_clustering
+from global_land_mask import globe
 
 
 def readSatData(path):
@@ -89,13 +90,15 @@ class DataSet():
 class SateliteData(DataSet):
     def __init__(self, filename):
         super().__init__(filename)
-        self.RefSet = DataSet('dataset-CHL-model-daily.nc')
+        self.RefSet = DataSet('MetO-NWS-BIO-dm-CHL.nc')
 
         self.removeUnmatchingTime()
 
         self.removeEmptyLines()
 
         self.reduceSizeSpace()
+
+        self.removeLandPixels()
 
     def removeUnmatchingTime(self):
 
@@ -172,56 +175,68 @@ class SateliteData(DataSet):
         print("Sat shape", np.shape(self.data))
         print("Model shape", np.shape(self.RefSet.data))
 
+    def removeLandPixels(self):
+        # Remove values that are on mainland or lakes
+
+        print("\nRemoving values on mainland and lakes...")
+
+        lats, lons = np.meshgrid(self.lats, self.lons)
+
+        isLand = globe.is_land(lats.T, lons.T)
+
+        for k in range(len(self.data)):
+            self.data[k].mask = isLand | self.data[k].mask
+
+        lats, lons = np.meshgrid(self.RefSet.lats, self.RefSet.lons)
+        isLand = globe.is_land(lats.T, lons.T)
+
+        for k in range(len(self.RefSet.data)):
+            self.RefSet.data[k].mask = isLand | self.RefSet.data[k].mask
+
+
+
 def __main__():
     chl_path = 'dataset-CHL-satellite-daily.nc'
     spm_path = 'dataset-SPM-satellite-monthly.nc'
 
     sat1 = SateliteData(chl_path)
     #sat2 = SateliteData('dataset-SPM-satellite-monthly.nc')
-    tstep = 4000
-    # clS, labelsS, csS, s_avgS = timestep_clustering(matrix=sat1.data[tstep,:,:], timestep=None, mode="kmeans", n_clusters=4, silhouette=False)
-    # clM, labelsM, csM, s_avgM = timestep_clustering(matrix=sat1.RefSet, timestep=tstep, mode="kmeans", n_clusters=4, silhouette=False)
-    
-    lons, lats = np.meshgrid(sat1.RefSet.lons, sat1.RefSet.lats)
-    lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
-    lons_lats[:,:,0] = lons
-    lons_lats[:,:,1] = lats
-    myAnimation = SateliteTimeSeries(sat1)
 
-    # tsS = TimeSeries(labelsS, lons_lats[:, :, 0], lons_lats[:, :, 1])
-    # tsS.createAnimation(max_data_value=[10], min_data_value=[0], n_rows=1, n_cols=1)
-    
-    max_data_value = [10, 10]
+    timestep = -1
+    #max_data_value = [0.5*np.nanmax(sat1.data[timestep,:,:]), 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:])]
+    #min_data_value = [None, None]
+
+    max_data_value = [3, 3]
     min_data_value = [0, 0]
 
     # Create animation
-    myAnimation.createAnimation(number_of_contour_levels = 20, n_rows = 1, n_cols = 2,\
-        max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 4000,\
-        end_frame = 4000, skip_frames = 100)
+    #myAnimation = SateliteTimeSeries(sat1)
+    #myAnimation.createAnimation(number_of_contour_levels = 20, n_rows = 1, n_cols = 2,\
+    #    max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 100,\
+    #    end_frame = 100, skip_frames = 100)
 
     # myAnimation.saveAnimation(fps = 8, name = 'toLazytoName2')
 
-    # lons, lats = np.meshgrid(sat1.lons, sat1.lats)
-    # lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
-    # lons_lats[:,:,0] = lons
-    # lons_lats[:,:,1] = lats
+    lons, lats = np.meshgrid(sat1.lons, sat1.lats)
+    lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
+    lons_lats[:,:,0] = lons
+    lons_lats[:,:,1] = lats
 
-    # timestep = 4000
+    
 
-    # geographic_plot(sat1.data[timestep,:,:], lons_lats, key = sat1.keys+' (Sat)',\
-    #   unit = sat1.unit, date = sat1.times[timestep], minVal = None,\
-    #   maxVal = 0.5*np.nanmax(sat1.data[timestep,:,:]), adjustBorder = False)
+    geographic_plot(sat1.data[timestep,:,:], lons_lats, key = r'Chlorophyll a - Satelite data',\
+        unit = r'$\frac{mg}{m^3}$', date = sat1.times[timestep], minVal = min_data_value[0],\
+        maxVal = max_data_value[0], adjustBorder = False, levels = 50)
 
-    # timestep = 5000
 
     lons, lats = np.meshgrid(sat1.RefSet.lons, sat1.RefSet.lats)
     lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
     lons_lats[:,:,0] = lons
     lons_lats[:,:,1] = lats
 
-    # geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = sat1.RefSet.keys,\
-    #    unit = sat1.RefSet.unit, date = sat1.RefSet.times[timestep], minVal = None,\
-    #    maxVal = 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:]), adjustBorder = False)
+    geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = r'Chlorophyll a - Model data',\
+        unit = r'$\frac{mg}{m^3}$', date = sat1.RefSet.times[timestep], minVal = min_data_value[1],\
+        maxVal = max_data_value[1], adjustBorder = False, levels = 50)
 
 if __name__ == "__main__":
     __main__()
