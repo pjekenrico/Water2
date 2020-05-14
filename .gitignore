@@ -12,7 +12,9 @@ __pycache__/
 .vs
 *.npz
 *.mp4
+*.json
 datetimes.txt
+.vscode
 
 # Distribution / packaging
 .Python

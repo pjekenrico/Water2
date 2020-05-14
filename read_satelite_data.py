@@ -10,6 +10,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from visualization import TimeSeries, SateliteTimeSeries, geographic_plot
+from global_land_mask import globe
 
 
 def readSatData(path):
@@ -88,13 +89,15 @@ class DataSet():
 class SateliteData(DataSet):
     def __init__(self, filename):
         super().__init__(filename)
-        self.RefSet = DataSet('dataset-CHL-model-daily.nc')
+        self.RefSet = DataSet('MetO-NWS-BIO-dm-CHL.nc')
 
         self.removeUnmatchingTime()
 
         self.removeEmptyLines()
 
         self.reduceSizeSpace()
+
+        self.removeLandPixels()
 
     def removeUnmatchingTime(self):
 
@@ -169,6 +172,25 @@ class SateliteData(DataSet):
         self.RefSet.lats = self.RefSet.lats[1 : 54]
         self.RefSet.lons = self.RefSet.lons[10 : 100]
 
+    def removeLandPixels(self):
+        # Remove values that are on mainland or lakes
+
+        print("\nRemoving values on mainland and lakes...")
+
+        lats, lons = np.meshgrid(self.lats, self.lons)
+
+        isLand = globe.is_land(lats.T, lons.T)
+
+        for k in range(len(self.data)):
+            self.data[k].mask = isLand | self.data[k].mask
+
+        lats, lons = np.meshgrid(self.RefSet.lats, self.RefSet.lons)
+        isLand = globe.is_land(lats.T, lons.T)
+
+        for k in range(len(self.RefSet.data)):
+            self.RefSet.data[k].mask = isLand | self.RefSet.data[k].mask
+
+
 
 def __main__():
     chl_path = 'dataset-CHL-satellite-daily.nc'
@@ -177,40 +199,41 @@ def __main__():
     sat1 = SateliteData(chl_path)
     #sat2 = SateliteData('dataset-SPM-satellite-monthly.nc')
 
-    
-    myAnimation = SateliteTimeSeries(sat1)
+    timestep = -1
+    #max_data_value = [0.5*np.nanmax(sat1.data[timestep,:,:]), 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:])]
+    #min_data_value = [None, None]
 
-    max_data_value = [10, 10]
+    max_data_value = [3, 3]
     min_data_value = [0, 0]
 
     # Create animation
-    myAnimation.createAnimation(number_of_contour_levels = 20, n_rows = 1, n_cols = 2,\
-        max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 100,\
-        end_frame = 100, skip_frames = 100)
+    #myAnimation = SateliteTimeSeries(sat1)
+    #myAnimation.createAnimation(number_of_contour_levels = 20, n_rows = 1, n_cols = 2,\
+    #    max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 100,\
+    #    end_frame = 100, skip_frames = 100)
 
     # myAnimation.saveAnimation(fps = 8, name = 'toLazytoName2')
 
-    # lons, lats = np.meshgrid(sat1.lons, sat1.lats)
-    # lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
-    # lons_lats[:,:,0] = lons
-    # lons_lats[:,:,1] = lats
+    lons, lats = np.meshgrid(sat1.lons, sat1.lats)
+    lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
+    lons_lats[:,:,0] = lons
+    lons_lats[:,:,1] = lats
 
-    # timestep = 4000
+    
 
-    # geographic_plot(sat1.data[timestep,:,:], lons_lats, key = sat1.keys+' (Sat)',\
-    #   unit = sat1.unit, date = sat1.times[timestep], minVal = None,\
-    #   maxVal = 0.5*np.nanmax(sat1.data[timestep,:,:]), adjustBorder = False)
+    geographic_plot(sat1.data[timestep,:,:], lons_lats, key = r'Chlorophyll a - Satelite data',\
+        unit = r'$\frac{mg}{m^3}$', date = sat1.times[timestep], minVal = min_data_value[0],\
+        maxVal = max_data_value[0], adjustBorder = False, levels = 50)
 
-    timestep = 5000
 
     lons, lats = np.meshgrid(sat1.RefSet.lons, sat1.RefSet.lats)
     lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
     lons_lats[:,:,0] = lons
     lons_lats[:,:,1] = lats
 
-    # geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = sat1.RefSet.keys,\
-    #    unit = sat1.RefSet.unit, date = sat1.RefSet.times[timestep], minVal = None,\
-    #    maxVal = 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:]), adjustBorder = False)
+    geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = r'Chlorophyll a - Model data',\
+        unit = r'$\frac{mg}{m^3}$', date = sat1.RefSet.times[timestep], minVal = min_data_value[1],\
+        maxVal = max_data_value[1], adjustBorder = False, levels = 50)
 
 if __name__ == "__main__":
     __main__()
