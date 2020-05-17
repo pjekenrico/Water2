@@ -78,7 +78,7 @@ def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=No
     data[0,1] = maxVal
 
     # Plot data
-    cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, levels,
+    cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, levels, 
                       cmap=cm.rainbow, transform=ccrs.PlateCarree())
 
 

@@ -40,7 +40,7 @@ def region_calculation(n_regions=4, show_silhouette=True):
     silhouette_scores = np.full(av_matrix.shape[0], np.nan)
     for i in range(av_matrix.shape[0]):
         cl, labels[i, :, :], cl_sizes, silhouette_scores[i] = timestep_clustering(
-            matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_regions, silhouette=True, verbose=False)
+            matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_regions, silhouette=False, verbose=False)
         labels[i, :, :] = sort_clusters(
             labels=labels[i, :, :], cluster_sizes=cl_sizes)
 
