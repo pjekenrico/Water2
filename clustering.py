@@ -104,6 +104,7 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
     silhouette: plots the silohuette of the clusters (default False)
     verbose:    displays additional information while cluatering
     '''
+    m_shape = len(matrix.shape)
     data = None
     if timestep == None:
         data = np.asarray(matrix)
@@ -112,7 +113,10 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
             print("Timestep not valid!")
             return
         else:
-            data = matrix[timestep, :, :, :]
+            if m_shape == 4:
+                data = matrix[timestep, :, :, :]
+            else:
+                data = matrix[timestep, :, :]
 
     # Straighten-out data for clustering
     straight_data = []
@@ -120,8 +124,15 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
 
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
-            if (~np.isnan(data[i, j, :])).all():
-                d = data[i, j, :].tolist()
+            if m_shape == 4:
+                not_nan = ~np.isnan(data[i, j, :]).all()
+            else:
+                not_nan = not data.mask[i, j]
+            if not_nan:
+                if m_shape == 4:
+                    d = data[i, j, :].tolist()
+                else:
+                    d = [data[i, j], 0]
                 coordinates.append([i, j])
                 straight_data.append(d)
 
@@ -136,16 +147,15 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
     elif mode == 'hierarchical':
         clustered_data = clustering(
             data=straight_data, n_clusters=n_clusters, mode='hierarchical', verbose=verbose)
-    
-    
+
     cluster_sizes = [len(list(compress(straight_data, clustered_data.labels_ == i)))
-                        for i in range(n_clusters)]
+                     for i in range(n_clusters)]
     if verbose:
         print("The " + str(n_clusters) + " cluster sizes are:")
         print(cluster_sizes)
 
     # Saving lables in a spatial martix
-    labels = np.full(data.shape[:-1], np.nan)
+    labels = np.full(data.shape[0:2], np.nan)
     straight_labels = np.full(len(straight_data), np.nan)
 
     for i in range(len(straight_data)):
@@ -162,7 +172,7 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
     return clustered_data, labels, cluster_sizes, s_avg
 
 
-def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False, verbose = False, **kwargs):
+def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True, True], mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False, verbose=False, **kwargs):
     '''
     This function clusters the data of the selected chemicals timewise 
     and returns the clustered data and the labels.
@@ -216,7 +226,7 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
             data=straight_data, n_clusters=n_clusters, mode='hierarchical', **kwargs)
 
     if not n_clusters is None:
-        
+
         cluster_sizes = [len(list(compress(straight_data, clustered_data.labels_ == i)))
                          for i in range(n_clusters)]
         if verbose:
@@ -256,13 +266,15 @@ def clustering(data=None, n_clusters=10, mode='kmeans', metric='euclidean', dbsc
         print("Starting the Clustering Procedure, using mode: " + mode)
 
     if mode == 'kmeans':
-        clusterer = cluster.KMeans(n_clusters=n_clusters, init='k-means++', **kwargs)
+        clusterer = cluster.KMeans(
+            n_clusters=n_clusters, init='k-means++', **kwargs)
         clusterer.fit(data)
     elif mode == 'dbscan':
         clusterer = cluster.DBSCAN(eps=dbscan_epsilon, metric=metric, **kwargs)
         clusterer.fit(data)
     elif mode == 'hierarchical':
-        clusterer = cluster.AgglomerativeClustering(n_clusters=n_clusters, **kwargs)
+        clusterer = cluster.AgglomerativeClustering(
+            n_clusters=n_clusters, **kwargs)
         clusterer.fit(data)
 
     if verbose:
@@ -270,7 +282,7 @@ def clustering(data=None, n_clusters=10, mode='kmeans', metric='euclidean', dbsc
     return clusterer
 
 
-def average_data(matrix=None, chemicals=[True, True, True, True], delta_t=10):
+def average_data(matrix=None, delta_t=10):
     '''
     This function averages the data through time
 
@@ -279,46 +291,78 @@ def average_data(matrix=None, chemicals=[True, True, True, True], delta_t=10):
                 as default, all of them are averaged
     delta_t:    time period over which to average the data
     '''
-
-    n_chemicals = sum(np.multiply(chemicals, 1))
+    m_shape = len(matrix.shape)
+    n_chemicals = matrix.shape[-1] if m_shape==4 else 0
     time_steps = int(matrix.shape[0]/delta_t)
-    data = np.full(
-        (time_steps, matrix.shape[1], matrix.shape[2], n_chemicals), np.nan)
+    if m_shape == 4:
+        data = np.full(
+            (time_steps, matrix.shape[1], matrix.shape[2], matrix.shape[3]), np.nan)
 
-    print("Starting Averaging Procedure:")
-    sys.stdout.write("[%s]" % (" " * 10))
-    sys.stdout.flush()
-    sys.stdout.write("\b" * (10+1))
-    count = 0.1
-    for t in range(time_steps):
-        layer = np.zeros((matrix.shape[1], matrix.shape[2], n_chemicals))
-        for i in range(matrix.shape[1]):
-            for j in range(matrix.shape[2]):
-                t1 = t*delta_t
-                t2 = min((t + 1)*delta_t, matrix.shape[0] - 1)
-                c = 0
-                for chem in range(len(chemicals)):
-                    if chemicals[chem]:
+        print("Starting Averaging Procedure:")
+        sys.stdout.write("[%s]" % (" " * 10))
+        sys.stdout.flush()
+        sys.stdout.write("\b" * (10+1))
+        count = 0.1
+        for t in range(time_steps):
+            layer = np.zeros((matrix.shape[1], matrix.shape[2], n_chemicals))
+            for i in range(matrix.shape[1]):
+                for j in range(matrix.shape[2]):
+                    t1 = int(t*delta_t)
+                    t2 = int(min((t + 1)*delta_t, matrix.shape[0] - 1))
+                    for chem in range(n_chemicals):
                         temp_data = matrix[t1:t2, i, j, chem]
                         not_nan_indexes = ~np.isnan(temp_data)
                         n_not_nans = sum(np.multiply(not_nan_indexes, 1))
                         if n_not_nans > 0:
                             d = np.sum(temp_data[not_nan_indexes])/n_not_nans
-                            layer[i, j, c] = d
+                            layer[i, j, chem] = d
                         else:
-                            layer[i, j, c] = np.nan
-                        c += 1
-        data[t, :, :, :] = layer
-        if t / time_steps >= count:
-            sys.stdout.write(chr(9608))
-            sys.stdout.flush()
-            count += 0.1
+                            layer[i, j, chem] = np.nan
+            data[t, :, :, :] = layer
+            if t / time_steps >= count:
+                sys.stdout.write(chr(9608))
+                sys.stdout.flush()
+                count += 0.1
 
-    sys.stdout.write(chr(9608))
-    sys.stdout.flush()
-    print("\nFinished Averaging.")
+        sys.stdout.write(chr(9608))
+        sys.stdout.flush()
+        print("\nFinished Averaging.")
 
-    return data[:, :, :, :]
+        return data[:, :, :, :]
+    else:
+        data = np.full(
+            (time_steps, matrix.shape[1], matrix.shape[2]), np.nan)
+
+        print("Starting Averaging Procedure:")
+        sys.stdout.write("[%s]" % (" " * 10))
+        sys.stdout.flush()
+        sys.stdout.write("\b" * (10+1))
+        count = 0.1
+        for t in range(time_steps):
+            layer = np.zeros((matrix.shape[1], matrix.shape[2]))
+            for i in range(matrix.shape[1]):
+                for j in range(matrix.shape[2]):
+                    t1 = int(t*delta_t)
+                    t2 = int(min((t + 1)*delta_t, matrix.shape[0] - 1))
+                    temp_data = matrix[t1:t2, i, j]
+                    mask = ~temp_data.mask
+                    n_not_nans = sum(np.multiply(mask, 1))
+                    if n_not_nans > 0:
+                        d = np.sum(temp_data[mask])/n_not_nans
+                        layer[i, j] = d
+                    else:
+                        layer[i, j] = np.nan
+            data[t, :, :] = layer
+            if t / time_steps >= count:
+                sys.stdout.write(chr(9608))
+                sys.stdout.flush()
+                count += 0.1
+
+        sys.stdout.write(chr(9608))
+        sys.stdout.flush()
+        print("\nFinished Averaging.")
+
+        return data[:, :, :]
 
 
 def sort_clusters(labels=None, cluster_sizes=[]):
@@ -438,10 +482,10 @@ def main():
     with np.load('lons_lats.npz') as ll:
         lons_lats = ll['lons_lats']
     # Average the data through time (if needed)
-    # av_matrix = average_data(matrix=matrix, delta_t=30)
-    # np.savez_compressed('av_model_data30.npz', matrix=av_matrix)
-    with np.load('av_model_data30.npz') as av_m:
-        av_matrix = av_m['matrix']
+    av_matrix = average_data(matrix=matrix, delta_t=30.4325)
+    np.savez_compressed('av_model_data30.npz', matrix=av_matrix)
+    # with np.load('av_model_data30.npz') as av_m:
+    #     av_matrix = av_m['matrix']
     print("Finished fetching data")
 
     # Clustering variables
@@ -458,19 +502,23 @@ def main():
 
     # cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=k, silhouette=False)
 
-
     # cl, labels, cs, s_avg = single_chemical_clustering(
     #     matrix=av_matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters, silhouette=True)
-    
 
-    #clusterNumbers = np.arange(2,20,1)
-    #inertias = list()
+    # clusterNumbers = np.arange(2, 15, 1)
+    # inertias = list()
+    # silhouette = list()
 
-    #for k in clusterNumbers:
-    #    cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="kmeans", n_clusters=k, silhouette=False)
-    #    inertias.append(cl.inertia_)
+    # for k in clusterNumbers:
+    #     cl, labels, cs, s_avg = timestep_clustering(
+    #         matrix=av_matrix, timestep=0, mode="kmeans", n_clusters=k, silhouette=False)
+    #     inertias.append(cl.inertia_)
+    #     silhouette.append(s_avg)
 
-    #elbowPlot(inertiaVals = inertias, n_cluster = clusterNumbers)
+    # plt.plot(clusterNumbers, silhouette)
+    # plt.show()
+
+    # elbowPlot(inertiaVals=inertias, n_cluster=clusterNumbers)
 
     # Clustering with hierarchical/agglomeratative
     #cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="hierarchical", n_clusters=None, silhouette=False, distance_threshold=0)
@@ -481,6 +529,7 @@ def main():
 
     clustervalues(matrix, labels, lons_lats, d, lon = 8.6865, lat = 54.025, chem = ['no3','po4'])
 
+    # plot_dendrogram(cl, truncate_mode='level', p=5)
     #geographic_plot(data=labels, lons_lats = lons_lats, levels = 4, key = '', unit = '', date = '', minVal = 0, maxVal = 4, adjustBorder = False)
 
     # cl, labels, cs, s_avg = single_chemical_clustering(matrix=matrix, chemical=chem, mode="hierarchical", n_clusters=n_clusters)

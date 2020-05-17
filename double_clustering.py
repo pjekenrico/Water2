@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import stats
 from clustering import average_data, timestep_clustering, sort_clusters, clustering
-from visualization import geographic_plot, timeseries_plot
+from visualization import geographic_plot, timeseries_plot, timeClustersVisualization
 import matplotlib.pyplot as plt
 from itertools import compress
 from silhouette import silhouette_plot
@@ -40,7 +40,7 @@ def region_calculation(n_regions=4, show_silhouette=True):
     silhouette_scores = np.full(av_matrix.shape[0], np.nan)
     for i in range(av_matrix.shape[0]):
         cl, labels[i, :, :], cl_sizes, silhouette_scores[i] = timestep_clustering(
-            matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_regions, silhouette=True, verbose=False)
+            matrix=av_matrix, timestep=i, mode="kmeans", n_clusters=n_regions, silhouette=False, verbose=False)
         labels[i, :, :] = sort_clusters(
             labels=labels[i, :, :], cluster_sizes=cl_sizes)
 
@@ -108,9 +108,11 @@ def main():
         dates = pickle.load(fp)
     print('Finished Fetching Data')
 
+    print(av_matrix.shape)
+
     # Clustering parameters
     mode = 'kmeans'
-    n_clusters = 5
+    n_clusters = 4
 
     data = []
     s_avg = []
@@ -136,14 +138,15 @@ def main():
                                      data=data[i], plotGraph=False, n_clusters=n_clusters))
 
         # Keeping relevant dates
-        new_d = []
-        for i in range(len(dates)):
-            if i % 30 == 0:
-                new_d.append(dates[i])
+        # new_d = []
+        # for i in range(len(dates)):
+        #     if i % 30 == 0:
+        #         new_d.append(dates[i])
 
-        new_d.pop()
+        # new_d.pop()
 
-        timeseries_plot(data=clustered_data.labels_, t=new_d)
+        timeClustersVisualization(labels=clustered_data.labels_, data_points_per_year=12, n_clusters=n_clusters)
+        # timeseries_plot(data=clustered_data.labels_, t=new_d)
     print(s_avg)
 
 
