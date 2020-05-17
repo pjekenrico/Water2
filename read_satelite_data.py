@@ -11,6 +11,8 @@ import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from visualization import TimeSeries, SateliteTimeSeries, geographic_plot
 from clustering import sort_clusters, clustering, timestep_clustering, average_data, single_chemical_clustering
+from global_land_mask import globe
+from scipy.interpolate import griddata
 
 
 def readSatData(path):
@@ -97,13 +99,15 @@ class DataSet():
 class SateliteData(DataSet):
     def __init__(self, filename):
         super().__init__(filename)
-        self.RefSet = DataSet('Andrea/MetO-NWS-BIO-dm-CHL.nc')
+        self.RefSet = DataSet('MetO-NWS-BIO-dm-CHL.nc')
 
         self.removeUnmatchingTime()
 
         self.removeEmptyLines()
 
         self.reduceSizeSpace()
+
+        self.removeLandPixels()
 
     def removeUnmatchingTime(self):
 
@@ -186,6 +190,31 @@ class SateliteData(DataSet):
         print("Sat shape", np.shape(self.data))
         print("Model shape", np.shape(self.RefSet.data))
 
+    def removeLandPixels(self):
+        # Remove values that are on mainland or lakes
+
+        print("\nRemoving values on mainland and lakes...")
+
+        lats, lons = np.meshgrid(self.lats, self.lons)
+
+        isLand = globe.is_land(lats.T, lons.T)
+
+        for k in range(len(self.data)):
+            self.data[k].mask = isLand | self.data[k].mask
+
+        latsRef, lonsRef = np.meshgrid(self.RefSet.lats, self.RefSet.lons)
+        isLand = globe.is_land(latsRef.T, lonsRef.T)
+
+        for k in range(len(self.RefSet.data)):
+            self.RefSet.data[k].mask = isLand | self.RefSet.data[k].mask
+
+        lats, lons = np.meshgrid(self.lons, self.lats)
+        latsRef, lonsRef = np.meshgrid(self.RefSet.lons, self.RefSet.lats)
+
+        newMask = griddata((lonsRef.flatten(), latsRef.flatten()), self.RefSet.data[0].mask.flatten(), (lons, lats), method='nearest')
+
+        for k in range(len(self.data)):
+            self.data[k].mask = newMask | self.data[k].mask
 
 def __main__():
     chl_path = 'Andrea/dataset-CHL-satellite-daily.nc'
@@ -193,19 +222,37 @@ def __main__():
 
     sat1 = SateliteData(chl_path)
 
+    #sat2 = SateliteData('dataset-SPM-satellite-monthly.nc')
+
+    timestep = -1
+    #max_data_value = [0.5*np.nanmax(sat1.data[timestep,:,:]), 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:])]
+    #min_data_value = [None, None]
+
+    max_data_value = [3, 3]
+    min_data_value = [0, 0]
+
+    # Create animation
+    #myAnimation = SateliteTimeSeries(sat1)
+    #myAnimation.createAnimation(number_of_contour_levels = 20, n_rows = 1, n_cols = 2,\
+    #    max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 100,\
+    #    end_frame = 100, skip_frames = 100)
+
+    # myAnimation.saveAnimation(fps = 8, name = 'toLazytoName2')
+
     lons, lats = np.meshgrid(sat1.lons, sat1.lats)
-    lons_lats = np.zeros((lons.shape[0], lons.shape[1], 2))
-    lons_lats[:, :, 0] = lons
-    lons_lats[:, :, 1] = lats
+    lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
+    lons_lats[:,:,0] = lons
+    lons_lats[:,:,1] = lats
 
     
-    with np.load('av_satellite_data30.npz') as av_m:
-        av_matrix = av_m['matrix']
-    
-    clustered_data, labels, cluster_sizes, s_avg = single_chemical_clustering(matrix=av_matrix, n_clusters=5, silhouette=False)
-    labels = sort_clusters(labels=labels, cluster_sizes=cluster_sizes)
-    geographic_plot(labels, lons_lats=lons_lats, levels=4)
 
+    geographic_plot(sat1.data[timestep,:,:], lons_lats, key = r'Chlorophyll a - Satelite data',\
+        unit = r'$\frac{mg}{m^3}$', date = sat1.times[timestep], minVal = min_data_value[0],\
+        maxVal = max_data_value[0], adjustBorder = True, levels = 50)
+
+    geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = r'Chlorophyll a - Model data',\
+        unit = r'$\frac{mg}{m^3}$', date = sat1.RefSet.times[timestep], minVal = min_data_value[1],\
+        maxVal = max_data_value[1], adjustBorder = True, levels = 50)
 
 
 if __name__ == "__main__":

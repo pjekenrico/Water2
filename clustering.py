@@ -14,7 +14,7 @@ from silhouette import silhouette_plot, elbowPlot, plot_dendrogram
 def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False, verbose=True):
     '''
     This function clusters spatially the data of a certain chemical through time and returns the clustered data
-    and the labels organized saptially.
+    and the labels organized spatially.
 
     matrix:     the data through time or the data at a particular timestep
     chemical:   if None the matrix is already given for the selected chemical
@@ -92,7 +92,7 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
 def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False, verbose=True):
     '''
     This function clusters spatially the data at a certain timestep and returns the clustered data
-    and the labels organized saptially.
+    and the labels organized spatially.
 
     matrix:     the data through time or the data at a particular timestep
     timestep:   if None: the matrix is already given at a single timestep
@@ -190,7 +190,7 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
     dbscan_eps: for dbscan, the maximal neighboring distance
     metric:     for dbscan, the metric used for distance calculations
     silhouette: plots the silohuette of the clusters (default False)
-    verbose:    displays additional information while cluatering
+    verbose:    displays additional information while clustering
     '''
     data = None
     if location != None:

@@ -14,6 +14,7 @@ __pycache__/
 *.mp4
 settings.json
 datetimes.txt
+.vscode
 
 # Distribution / packaging
 .Python
