@@ -49,7 +49,7 @@ def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=No
     ax = plt.axes(projection=ccrs.Mercator())
 
     # Put a background image on for nice sea rendering.
-    #ax.stock_img()
+    # ax.stock_img()
 
     # High resolution map features
     ax.coastlines(resolution='10m')
@@ -74,13 +74,12 @@ def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=No
         data = data*(data <= maxVal)*(data >= minVal) + minVal * \
             (data <= minVal) + maxVal*(data >= maxVal)
 
-    data[0,0] = minVal
-    data[0,1] = maxVal
+    data[0, 0] = minVal
+    data[0, 1] = maxVal
 
     # Plot data
-    cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, levels, 
+    cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, levels,
                       cmap=cm.rainbow, transform=ccrs.PlateCarree())
-
 
     # Add date
     if not date is None:
@@ -89,9 +88,9 @@ def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=No
 
     # Fix lats and lons to the given lons_lats instead of some reduced size based on the values of data
     if not adjustBorder:
-        ax.set_extent([np.min(lons_lats[:, :, 0]), np.max(lons_lats[:, :, 0]),\
-                       np.min(lons_lats[:, :, 1]), np.max(lons_lats[:, :, 1])],\
-                       crs=ccrs.PlateCarree())
+        ax.set_extent([np.min(lons_lats[:, :, 0]), np.max(lons_lats[:, :, 0]),
+                       np.min(lons_lats[:, :, 1]), np.max(lons_lats[:, :, 1])],
+                      crs=ccrs.PlateCarree())
 
     if not maxVal is None and not minVal is None:
         cs.set_clim(minVal, maxVal)
@@ -467,11 +466,29 @@ class SateliteTimeSeries(TimeSeries):
         super().__init__(data, lons=lons, lats=lats, keys=keys, units=units, d=d)
 
 
+def timeClustersVisualization(labels=None, data_points_per_year=12, n_clusters=4):
+
+    label_matrix = np.full((data_points_per_year, n_clusters), 0)
+
+    for i in range(len(labels)):
+        label_matrix[i % data_points_per_year, int(labels[i])] += 1
+
+    f, subplts = plt.subplots(n_clusters, 1)
+
+    year_range = range(0, data_points_per_year, 1)
+    for i in range(n_clusters):
+        subplts[i].plot(year_range, label_matrix[:, i])
+    plt.show()
+    return
+
+
+
 # Example on how to use the visualization on raw data
 # When calling the class from a separate file import the class as:
 #
 # from visualization import TimeSeries
 #
+
 
 def main():
 

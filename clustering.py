@@ -391,7 +391,7 @@ def main():
     with np.load('lons_lats.npz') as ll:
         lons_lats = ll['lons_lats']
     # Average the data through time (if needed)
-    av_matrix = average_data(matrix=matrix, delta_t=30)
+    av_matrix = average_data(matrix=matrix, delta_t=30.4325)
     np.savez_compressed('av_model_data30.npz', matrix=av_matrix)
     # with np.load('av_model_data30.npz') as av_m:
     #     av_matrix = av_m['matrix']
@@ -414,26 +414,26 @@ def main():
     # cl, labels, cs, s_avg = single_chemical_clustering(
     #     matrix=av_matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters, silhouette=True)
 
-    clusterNumbers = np.arange(2, 15, 1)
-    inertias = list()
-    silhouette = list()
+    # clusterNumbers = np.arange(2, 15, 1)
+    # inertias = list()
+    # silhouette = list()
 
-    for k in clusterNumbers:
-        cl, labels, cs, s_avg = timestep_clustering(
-            matrix=av_matrix, timestep=0, mode="kmeans", n_clusters=k, silhouette=False)
-        inertias.append(cl.inertia_)
-        silhouette.append(s_avg)
+    # for k in clusterNumbers:
+    #     cl, labels, cs, s_avg = timestep_clustering(
+    #         matrix=av_matrix, timestep=0, mode="kmeans", n_clusters=k, silhouette=False)
+    #     inertias.append(cl.inertia_)
+    #     silhouette.append(s_avg)
 
-    plt.plot(clusterNumbers, silhouette)
-    plt.show()
+    # plt.plot(clusterNumbers, silhouette)
+    # plt.show()
 
-    elbowPlot(inertiaVals=inertias, n_cluster=clusterNumbers)
+    # elbowPlot(inertiaVals=inertias, n_cluster=clusterNumbers)
 
     # Clustering with hierarchical/agglomeratative
-    cl, labels, cs, s_avg = timewise_clustering(
-        matrix=av_matrix, mode="hierarchical", n_clusters=None, silhouette=False, distance_threshold=0)
+    # cl, labels, cs, s_avg = timewise_clustering(
+    #     matrix=av_matrix, mode="hierarchical", n_clusters=None, silhouette=False, distance_threshold=0)
 
-    plot_dendrogram(cl, truncate_mode='level', p=5)
+    # plot_dendrogram(cl, truncate_mode='level', p=5)
 
     # cl, labels, cs, s_avg = single_chemical_clustering(matrix=matrix, chemical=chem, mode="hierarchical", n_clusters=n_clusters)
 
