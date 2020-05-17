@@ -1,9 +1,7 @@
-﻿import netCDF4
+﻿import netCDF4, os, matplotlib
 from netCDF4 import Dataset
-import os
 import numpy as np
 import datetime as dt
-import matplotlib
 import matplotlib.pyplot as plt
 from itertools import compress
 import cartopy.crs as ccrs
@@ -56,12 +54,13 @@ def findClose(vector, reference, end = 'min'):
     Search for the index at which vector has a similar value to 'reference'. When the 'min' is given, the closest
     value of vector is sought from below, returning an index of a value that is slightly smaller:
         vector = [1,2,3,4,5,6], reference = 2.5 -> i = 2
+
     Else, if the 'max' is used it returns the index to the next bigger entry in vector looking from above:
         vector = [1,2,3,4,5,6], reference = 2.5 -> i = 3
 
-    param vector: Iterable array or list of numbers.
-    param reference: Reference value.
-    param end: String stating whether the head of the vector is sought (lower match) or the tail.
+    vector: Iterable array or list of numbers.
+    reference: Reference value.
+    end: String stating whether the head of the vector is sought (lower match) or the tail.
     '''
     if end == 'min' or end == 'Min':
         for counter, value in enumerate(vector):

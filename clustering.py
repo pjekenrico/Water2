@@ -337,11 +337,102 @@ def sort_clusters(labels=None, cluster_sizes=[]):
     return labels - n_clusters
 
 
+def clustervalues(matrix, labels, lons_lats, d, lon = 8.6865, lat = 54.025, chem = ['no3','po4']):
+    '''
+    Function to plot the yearly mean of two cuantities of a certain cluster. The preset values correspong
+    to the river estuary of the Elba, Weser and Rhine rivers.
+
+    matrix:     Matrix [timesteps, lons, lats, chem] containing the unmodified model values.
+    labels:     Labels of the clustering algorithm.
+    lons_lats:  Spatial coordinates of the form [:,:,0:1].
+    lon:        Longitude of a point within the cluster of interest.
+    lat:        Latitude of a point within the cluster of interest.
+    chems:      The chemicals that shall be plotted e.g. ['no3','po4']
+    '''
+    chems = list()
+
+    for c in chem:
+        if c == 'CHL' or c == 'chl' or c == 'Chl':
+            chems.append((0,r'$Chl~[\frac{mg}{m^3}]$'))
+        elif c == 'O2' or c == 'o2' or c == 'O_2':
+            chems.append((1,r'$O_2~[\frac{mmol}{m^3}]$'))
+        elif c == 'NO3' or c == 'no3' or c == 'no_3':
+            chems.append((2,r'$NO_3~[\frac{mmol}{m^3}]$'))
+        elif c == 'PO4' or c == 'po4' or c == 'po_4':
+            chems.append((3,r'$PO_4~[\frac{mmol}{m^3}]$'))
+
+
+
+
+    from read_satelite_data import findClose
+    latEstuary = findClose(lons_lats[:,0,1], 54.025, end = 'min')
+    lonEstuary = findClose(lons_lats[0,:,0], 8.6865, end = 'min')
+
+    label_estuary = labels[latEstuary,lonEstuary]
+
+    n = len(d)
+    no3 = list()
+    po4 = list()
+    dates = [1998]
+    datesIdx = [1998]
+    years = np.array([date.year for date in d])
+    idx = np.where(labels == label_estuary)
+
+    rawNO3 = matrix[:,:,:,chems[0][0]]
+    rawPO4 = matrix[:,:,:,chems[1][0]]
+    meanNO3 = np.zeros(n)
+    meanPO4 = np.zeros(n)
+
+    for k in range(n):
+
+        datesIdx.append(d[k].year)
+
+        if int(dates[-1]) < d[k].year:
+            dates.append(d[k].year)
+
+        tmp = rawNO3[k]
+        meanNO3[k] = np.nanmean(tmp[idx])
+        tmp = rawPO4[k]
+        meanPO4[k] = np.nanmean(tmp[idx])
+    
+    datesIdx.pop(-1)
+    datesIdx = np.array(datesIdx)
+
+    for k in dates:
+        no3.append(np.mean(meanNO3[np.where(datesIdx == k)]))
+        po4.append(np.mean(meanPO4[np.where(datesIdx == k)]))
+
+    no3 = np.array(no3)
+    po4 = np.array(po4)
+
+    fig, ax1 = plt.subplots()
+
+    color = 'tab:red'
+    ax1.set_xlabel('Year', fontdict=dict(size=12))
+    ax1.set_ylabel(chems[0][1], color=color, fontdict=dict(size=12))
+    ax1.plot(dates, no3, color=color)
+    ax1.tick_params(axis='y', labelcolor=color)
+    ax1.set_xticks(dates[0::2])
+    ax1.set_xticklabels(dates[0::2])
+    ax1.set_xlim([np.min(dates[0::2]), np.max(dates[0::2])])
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+    color = 'tab:blue'
+    ax2.set_ylabel(chems[1][1], color=color, fontdict=dict(size=12))  # we already handled the x-label with ax1
+    ax2.plot(dates, po4, color = color)
+    ax2.tick_params(axis = 'y', labelcolor = color)
+    ax2.set_title("Mean annual concentrations in the estuary cluster", fontdict=dict(color="black", size=12))
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    plt.show()
+
+
 def main():
     # Loading already saved data (see save_data.py)
     print("Fetching data...")
-    # with np.load('model_data.npz') as m:
-    #     matrix = m['matrix']
+    with np.load('model_data.npz') as m:
+        matrix = m['matrix']
     with open("datetimes.txt", "rb") as fp:   # Unpickling
         d = pickle.load(fp)
     with np.load('lons_lats.npz') as ll:
@@ -372,19 +463,25 @@ def main():
     #     matrix=av_matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters, silhouette=True)
     
 
-    clusterNumbers = np.arange(2,20,1)
-    inertias = list()
+    #clusterNumbers = np.arange(2,20,1)
+    #inertias = list()
 
-    for k in clusterNumbers:
-        cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="kmeans", n_clusters=k, silhouette=False)
-        inertias.append(cl.inertia_)
+    #for k in clusterNumbers:
+    #    cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="kmeans", n_clusters=k, silhouette=False)
+    #    inertias.append(cl.inertia_)
 
-    elbowPlot(inertiaVals = inertias, n_cluster = clusterNumbers)
+    #elbowPlot(inertiaVals = inertias, n_cluster = clusterNumbers)
 
     # Clustering with hierarchical/agglomeratative
-    cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="hierarchical", n_clusters=None, silhouette=False, distance_threshold=0)
+    #cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="hierarchical", n_clusters=None, silhouette=False, distance_threshold=0)
 
-    plot_dendrogram(cl, truncate_mode='level', p=5)
+    #plot_dendrogram(cl, truncate_mode='level', p=5)
+
+    cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=-1, mode="kmeans", n_clusters=4, silhouette=False)
+
+    clustervalues(matrix, labels, lons_lats, d, lon = 8.6865, lat = 54.025, chem = ['no3','po4'])
+
+    #geographic_plot(data=labels, lons_lats = lons_lats, levels = 4, key = '', unit = '', date = '', minVal = 0, maxVal = 4, adjustBorder = False)
 
     # cl, labels, cs, s_avg = single_chemical_clustering(matrix=matrix, chemical=chem, mode="hierarchical", n_clusters=n_clusters)
 
@@ -393,11 +490,15 @@ def main():
     # cl, labels, cs, s_avg = single_chemical_clustering(
     #     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
 
+
+
     # Display and Save Animation
     # ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
     # ts.createAnimation(max_data_value=[
     #                    5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
     # ts.saveAnimation(name='clusters_Yearly_av')
+
+
 
     # Plot cluster labels geographically
 

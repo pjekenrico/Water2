@@ -30,7 +30,7 @@ def timeseries_plot(data=None, t=None):
     plt.show()
 
 
-def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True):
+def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True):
     '''
         Plot single data frames.
 
@@ -45,7 +45,7 @@ def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=No
     '''
 
     # Plotting the clusters
-    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(10, 6))
     ax = plt.axes(projection=ccrs.Mercator())
 
     # Put a background image on for nice sea rendering.
@@ -72,10 +72,13 @@ def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=No
         data = data*(data <= maxVal) + maxVal*(data >= maxVal)
     elif not maxVal is None and not minVal is None:
         data = data*(data <= maxVal)*(data >= minVal) + minVal * \
-            (data <= minVal) + maxVal*(data >= maxVal)
+            (data < minVal) + maxVal*(data > maxVal)
 
-    data[0,0] = minVal
-    data[0,1] = maxVal
+    try:
+        data[0,0] = minVal
+        data[0,1] = maxVal
+    except:
+        pass
 
     # Plot data
     cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, levels,
@@ -84,7 +87,7 @@ def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=No
 
     # Add date
     if not date is None:
-        ax.text(0.8, 1.02, "{}".format("Date : " + str(date)),
+        ax.text(0.7, 1.02, "{}".format("Date : " + str(date)),
                 transform=ax.transAxes, fontdict=dict(color="black", size=14))
 
     # Fix lats and lons to the given lons_lats instead of some reduced size based on the values of data
@@ -105,8 +108,7 @@ def geographic_plot(data, lons_lats=None, levels=5, key=None, unit=None, date=No
         cbar.ax.set_ylabel(unit, fontdict=dict(color="black", size=16))
 
     if not key is None:
-        ax.text(0.0, 1.02, "{}".format("Quantity: " + key),
-                transform=ax.transAxes, fontdict=dict(color="black", size=14))
+        ax.text(0.0, 1.02, key, transform=ax.transAxes, fontdict=dict(color="black", size=14))
     plt.show()
 
 
@@ -241,9 +243,8 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,
             # Cap data at set limits (otherwise values appear white)
             if ~np.isnan(data_2d).any():
                 data_2d = data_2d*(data_2d <= v_max[nr_subplot])*(data_2d >= v_min[nr_subplot])\
-                    + v_min[nr_subplot]*(data_2d <= v_min[nr_subplot])\
-                    + v_max[nr_subplot] * \
-                    (data_2d >= v_max[nr_subplot])
+                    + v_min[nr_subplot] * (data_2d < v_min[nr_subplot])\
+                    + v_max[nr_subplot] * (data_2d > v_max[nr_subplot])
 
             # Create the contour plot
             if isinstance(lons, list):
@@ -493,7 +494,7 @@ def main():
     keys.append(list(datasets[1].variables)[0])
     keys.append(list(datasets[2].variables)[0])
     keys.append(list(datasets[3].variables)[1])
-    units = ["$mg/m^3$", "$mmol/m^3$", "$mmol/m^3$", "$mmol/m^3$"]
+    units = [r'$\frac{mg}{m^3}$', r'$\frac{mmol}{m^3}$', r'$\frac{mmol}{m^3}$', r'$\frac{mmol}{m^3}$']
 
     # Read the measurment dates
     time = datasets[0].variables['time']
@@ -513,7 +514,7 @@ def main():
     # Load data and close document
     data = []
     for i in range(4):
-        data.append(datasets[i].variables[keys[i]][:])
+        data.append(np.squeeze(datasets[i].variables[keys[i]][:]))
         datasets[i].close()
 
     # Or load precomputed data
@@ -522,6 +523,16 @@ def main():
     # with np.load('lons_lats.npz') as ll:
     #    lons = ll['lons_lats']
     #lats = None
+
+    # Plot a certain time step
+    timeStep = 3700
+    #timeStep = 3890
+    lons_lats = np.zeros(data[0][0].shape + (2,))
+    lons_lats[:,:,0], lons_lats[:,:,1] = np.meshgrid(lons,lats)
+    
+    geographic_plot(data[1][timeStep,:,:], lons_lats=lons_lats, levels=50, key = r'$O_2$',\
+       unit=units[1], date = d[timeStep], minVal=210, maxVal=350, adjustBorder=True)
+
 
     #max_data_value = [1, 1, 1, 1]
     #min_data_value = [0, 0, 0, 0]

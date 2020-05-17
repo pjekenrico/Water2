@@ -77,18 +77,16 @@ def elbowPlot(inertiaVals, n_cluster):
 
     derivative2 = inertia[2:] -2*inertia[1:-1] + inertia[0:-2]
 
-    fig, ax = plt.subplots(1,2)
-    ax[0].plot(n_cluster,inertiaVals)
-    ax[1].plot(n_cluster[:-2],derivative2)
-
-    ax[0].set_title("Inertia Elbow method")
-    ax[1].set_title("Derivative Elbow method")
-
-    ax[0].grid('on')
-    ax[1].grid('on')
-
-    ax[0].set_xlabel('$n_{C}$')
-    ax[0].set_ylabel('$Inertia$')
+    fig = plt.figure(figsize = (8,5))
+    plt.plot(n_cluster,inertiaVals, label = '$J$')
+    plt.plot(n_cluster[1:-1], derivative2, label = r'$\ddot{J}$')
+    plt.title("Elbow method", fontdict=dict(color="black", size=14))
+    plt.xlabel('$n_{C}$', fontdict=dict(color="black", size=14))
+    plt.xlim([np.min(n_cluster),np.max([n_cluster])])
+    plt.xticks([2, 4, 6, 8, 10, 12, 14, 16, 18],\
+        ["2","4","6","8","10","12","14","16","18"])
+    plt.yticks([])
+    plt.legend()
     plt.show()
 
 
