@@ -474,11 +474,15 @@ def timeClustersVisualization(labels=None, data_points_per_year=12, n_clusters=4
     for i in range(len(labels)):
         label_matrix[i % data_points_per_year, int(labels[i])] += 1
 
-    f, subplts = plt.subplots(n_clusters, 1)
+    f, subplts = plt.subplots(n_clusters, 1, figsize = (10,6),sharex = True, sharey = True)
 
     year_range = range(0, data_points_per_year, 1)
     for i in range(n_clusters):
         subplts[i].plot(year_range, label_matrix[:, i])
+        subplts[i].set_xlim([np.min(year_range), np.max(year_range)])
+        subplts[i].grid('on', axis = 'x')
+
+    plt.tight_layout()
     plt.show()
     return
 
