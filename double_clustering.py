@@ -90,7 +90,7 @@ def average_by_region(matrix=None, chemical=0, r_labels=None, n_regions=4):
 
 
 def main():
-    n_regions = 4
+    n_regions = 3
 
     # Loading region data and calculate them if not saved
     try:
@@ -108,8 +108,6 @@ def main():
         dates = pickle.load(fp)
     print('Finished Fetching Data')
 
-    print(av_matrix.shape)
-
     # Clustering parameters
     mode = 'kmeans'
     n_clusters = 4
@@ -121,6 +119,7 @@ def main():
     for i in range(4):
         data.append(average_by_region(matrix=av_matrix, chemical=i,
                                       r_labels=region_labels, n_regions=n_regions))
+
         # Clustering
         if mode == 'kmeans':
             clustered_data = clustering(

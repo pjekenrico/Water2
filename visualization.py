@@ -75,8 +75,8 @@ def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=No
             (data < minVal) + maxVal*(data > maxVal)
 
     try:
-        data[0,0] = minVal
-        data[0,1] = maxVal
+        data[0, 0] = minVal
+        data[0, 1] = maxVal
     except:
         pass
 
@@ -107,7 +107,8 @@ def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=No
         cbar.ax.set_ylabel(unit, fontdict=dict(color="black", size=16))
 
     if not key is None:
-        ax.text(0.0, 1.02, key, transform=ax.transAxes, fontdict=dict(color="black", size=14))
+        ax.text(0.0, 1.02, key, transform=ax.transAxes,
+                fontdict=dict(color="black", size=14))
     plt.show()
 
 
@@ -474,18 +475,21 @@ def timeClustersVisualization(labels=None, data_points_per_year=12, n_clusters=4
     for i in range(len(labels)):
         label_matrix[i % data_points_per_year, int(labels[i])] += 1
 
-    f, subplts = plt.subplots(n_clusters, 1, figsize = (10,6),sharex = True, sharey = True)
+    f, subplts = plt.subplots(n_clusters, 1, figsize=(
+        10, 6), sharex=True, sharey=True)
 
-    year_range = range(0, data_points_per_year, 1)
+    year_range = range(1, data_points_per_year + 1, 1)
     for i in range(n_clusters):
         subplts[i].plot(year_range, label_matrix[:, i])
         subplts[i].set_xlim([np.min(year_range), np.max(year_range)])
-        subplts[i].grid('on', axis = 'x')
-
+        subplts[i].grid(axis='x')
+        subplts[i].set_title('Cluster ' + str(i + 1))
+        subplts[i].set_ylabel('Frequency')
+    
+    subplts[-1].set_xlabel('Month of the year')
     plt.tight_layout()
     plt.show()
     return
-
 
 
 # Example on how to use the visualization on raw data
@@ -515,7 +519,8 @@ def main():
     keys.append(list(datasets[1].variables)[0])
     keys.append(list(datasets[2].variables)[0])
     keys.append(list(datasets[3].variables)[1])
-    units = [r'$\frac{mg}{m^3}$', r'$\frac{mmol}{m^3}$', r'$\frac{mmol}{m^3}$', r'$\frac{mmol}{m^3}$']
+    units = [r'$\frac{mg}{m^3}$', r'$\frac{mmol}{m^3}$',
+             r'$\frac{mmol}{m^3}$', r'$\frac{mmol}{m^3}$']
 
     # Read the measurment dates
     time = datasets[0].variables['time']
@@ -549,11 +554,10 @@ def main():
     timeStep = 3700
     #timeStep = 3890
     lons_lats = np.zeros(data[0][0].shape + (2,))
-    lons_lats[:,:,0], lons_lats[:,:,1] = np.meshgrid(lons,lats)
-    
-    geographic_plot(data[1][timeStep,:,:], lons_lats=lons_lats, levels=50, key = r'$O_2$',\
-       unit=units[1], date = d[timeStep], minVal=210, maxVal=350, adjustBorder=True)
+    lons_lats[:, :, 0], lons_lats[:, :, 1] = np.meshgrid(lons, lats)
 
+    geographic_plot(data[1][timeStep, :, :], lons_lats=lons_lats, levels=50, key=r'$O_2$',
+                    unit=units[1], date=d[timeStep], minVal=210, maxVal=350, adjustBorder=True)
 
     #max_data_value = [1, 1, 1, 1]
     #min_data_value = [0, 0, 0, 0]
