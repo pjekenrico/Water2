@@ -30,7 +30,7 @@ def timeseries_plot(data=None, t=None):
     plt.show()
 
 
-def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True):
+def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True, cluster = True):
     '''
         Plot single data frames.
 
@@ -80,9 +80,15 @@ def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=No
     except:
         pass
 
+    if cluster:
+        cmap = cm.nipy_spectral
+    else:
+        cmap = cm.rainbow
+
+
     # Plot data
     cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, levels,
-                      cmap=cm.rainbow, transform=ccrs.PlateCarree())
+                      cmap=cmap, transform=ccrs.PlateCarree())
 
     # Add date
     if not date is None:
@@ -100,15 +106,13 @@ def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=No
     else:
         cs.set_clim(np.nanmin(data), np.nanmax(data))
 
-    # Add Colorbar
-    cbar = fig.colorbar(cs, ax=ax, fraction=0.046, pad=0.04)
+    if not cluster:
+        # Add Colorbar
+        cbar = fig.colorbar(cs, ax=ax, fraction=0.046, pad=0.04)
 
-    if not unit is None:
-        cbar.ax.set_ylabel(unit, fontdict=dict(color="black", size=16))
+        if not unit is None:
+            cbar.ax.set_ylabel(unit, fontdict=dict(color="black", size=16))
 
-    if not key is None:
-        ax.text(0.0, 1.02, key, transform=ax.transAxes,
-                fontdict=dict(color="black", size=14))
     plt.show()
 
 

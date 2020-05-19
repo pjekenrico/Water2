@@ -89,7 +89,7 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
     return clustered_data, labels, cluster_sizes, s_avg
 
 
-def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False, verbose=True):
+def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False, verbose=True, **kwargs):
     '''
     This function clusters spatially the data at a certain timestep and returns the clustered data
     and the labels organized spatially.
@@ -139,14 +139,14 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
     # Clustering
     if mode == 'kmeans':
         clustered_data = clustering(
-            data=straight_data, n_clusters=n_clusters, mode='kmeans', verbose=verbose)
+            data=straight_data, n_clusters=n_clusters, mode='kmeans', verbose=verbose, **kwargs)
     elif mode == 'dbscan':
         clustered_data = clustering(
-            data=straight_data, mode='dbscan', metric=metric, dbscan_epsilon=dbscan_eps, verbose=verbose)
+            data=straight_data, mode='dbscan', metric=metric, dbscan_epsilon=dbscan_eps, verbose=verbose, **kwargs)
         n_clusters = max(clustered_data.labels_) + 1
     elif mode == 'hierarchical':
         clustered_data = clustering(
-            data=straight_data, n_clusters=n_clusters, mode='hierarchical', verbose=verbose)
+            data=straight_data, n_clusters=n_clusters, mode='hierarchical', verbose=verbose, **kwargs)
 
     cluster_sizes = [len(list(compress(straight_data, clustered_data.labels_ == i)))
                      for i in range(n_clusters)]
@@ -482,16 +482,16 @@ def main():
     with np.load('lons_lats.npz') as ll:
         lons_lats = ll['lons_lats']
     # Average the data through time (if needed)
-    av_matrix = average_data(matrix=matrix, delta_t=30.4325)
-    np.savez_compressed('av_model_data30.npz', matrix=av_matrix)
-    # with np.load('av_model_data30.npz') as av_m:
-    #     av_matrix = av_m['matrix']
+    #av_matrix = average_data(matrix=matrix, delta_t=30.4325)
+    #np.savez_compressed('av_model_data30.npz', matrix=av_matrix)
+    with np.load('av_model_data30.npz') as av_m:
+        av_matrix = av_m['matrix']
     print("Finished fetching data")
 
     # Clustering variables
-    tstep = 0
+    tstep = 50
     chem = 1
-    n_clusters = 5
+    n_clusters = 4
     dbscan_eps = 4
 
     # r_labels = region_clusters(data=av_matrix, lons_lats=lons_lats, n_clusters=4)
@@ -524,13 +524,21 @@ def main():
     #cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="hierarchical", n_clusters=None, silhouette=False, distance_threshold=0)
 
     #plot_dendrogram(cl, truncate_mode='level', p=5)
+    from double_clustering import region_calculation
+    try:
+        with np.load('region_labels.npz') as r_labels:
+            region_labels = r_labels['matrix']
+    except:
+        region_labels = region_calculation(
+            n_regions=4, show_silhouette=True)
+        np.savez_compressed('region_labels.npz', matrix=region_labels)
 
-    cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=-1, mode="kmeans", n_clusters=4, silhouette=False)
+    #clustervalues(matrix, region_labels, lons_lats, d, lon = 8.6865, lat = 54.025, chem = ['no3','po4'])
 
-    clustervalues(matrix, labels, lons_lats, d, lon = 8.6865, lat = 54.025, chem = ['no3','po4'])
+    #cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=n_clusters, silhouette=True)
 
     # plot_dendrogram(cl, truncate_mode='level', p=5)
-    #geographic_plot(data=labels, lons_lats = lons_lats, levels = 4, key = '', unit = '', date = '', minVal = 0, maxVal = 4, adjustBorder = False)
+    geographic_plot(data=region_labels, lons_lats = lons_lats, levels = 4, minVal = 0, maxVal = 4, adjustBorder = False)
 
     # cl, labels, cs, s_avg = single_chemical_clustering(matrix=matrix, chemical=chem, mode="hierarchical", n_clusters=n_clusters)
 
@@ -543,8 +551,7 @@ def main():
 
     # Display and Save Animation
     # ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
-    # ts.createAnimation(max_data_value=[
-    #                    5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
+    # ts.createAnimation(max_data_value=[5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
     # ts.saveAnimation(name='clusters_Yearly_av')
 
 
