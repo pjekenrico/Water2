@@ -81,6 +81,7 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
                    ] = clustered_data.labels_[i]
             straight_labels[i] = clustered_data.labels_[i]
 
+    s_avg = 0
     s_avg = silhouette_plot(labels=straight_labels, data=straight_data,
                             plotGraph=silhouette, n_clusters=n_clusters)
 
@@ -164,6 +165,7 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
                    ] = clustered_data.labels_[i]
             straight_labels[i] = clustered_data.labels_[i]
 
+    s_avg = 0
     s_avg = silhouette_plot(labels=straight_labels, data=straight_data,
                             plotGraph=silhouette, n_clusters=n_clusters)
 
@@ -475,8 +477,8 @@ def clustervalues(matrix, labels, lons_lats, d, lon = 8.6865, lat = 54.025, chem
 def main():
     # Loading already saved data (see save_data.py)
     print("Fetching data...")
-    with np.load('model_data.npz') as m:
-        matrix = m['matrix']
+    # with np.load('model_data.npz') as m:
+    #     matrix = m['matrix']
     with open("datetimes.txt", "rb") as fp:   # Unpickling
         d = pickle.load(fp)
     with np.load('lons_lats.npz') as ll:
@@ -492,7 +494,7 @@ def main():
     tstep = 50
     chem = 1
     n_clusters = 4
-    dbscan_eps = 4
+    dbscan_eps = 0.8
 
     # r_labels = region_clusters(data=av_matrix, lons_lats=lons_lats, n_clusters=4)
 
@@ -500,7 +502,8 @@ def main():
 
     # Clustering with kmeans
 
-    # cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=k, silhouette=False)
+    cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=tstep, mode="dbscan", dbscan_eps=dbscan_eps, silhouette=False)
+    geographic_plot(data=labels, lons_lats = lons_lats, levels = len(cs) - 1)
 
     # cl, labels, cs, s_avg = single_chemical_clustering(
     #     matrix=av_matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters, silhouette=True)
@@ -524,21 +527,21 @@ def main():
     #cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="hierarchical", n_clusters=None, silhouette=False, distance_threshold=0)
 
     #plot_dendrogram(cl, truncate_mode='level', p=5)
-    from double_clustering import region_calculation
-    try:
-        with np.load('region_labels.npz') as r_labels:
-            region_labels = r_labels['matrix']
-    except:
-        region_labels = region_calculation(
-            n_regions=4, show_silhouette=True)
-        np.savez_compressed('region_labels.npz', matrix=region_labels)
+    # from double_clustering import region_calculation
+    # try:
+    #     with np.load('region_labels.npz') as r_labels:
+    #         region_labels = r_labels['matrix']
+    # except:
+    #     region_labels = region_calculation(
+    #         n_regions=4, show_silhouette=True)
+    #     np.savez_compressed('region_labels.npz', matrix=region_labels)
 
     #clustervalues(matrix, region_labels, lons_lats, d, lon = 8.6865, lat = 54.025, chem = ['no3','po4'])
 
     #cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=n_clusters, silhouette=True)
 
     # plot_dendrogram(cl, truncate_mode='level', p=5)
-    geographic_plot(data=region_labels, lons_lats = lons_lats, levels = 4, minVal = 0, maxVal = 4, adjustBorder = False)
+    # geographic_plot(data=region_labels, lons_lats = lons_lats, levels = 4, minVal = 0, maxVal = 4, adjustBorder = False)
 
     # cl, labels, cs, s_avg = single_chemical_clustering(matrix=matrix, chemical=chem, mode="hierarchical", n_clusters=n_clusters)
 
