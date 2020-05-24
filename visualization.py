@@ -30,7 +30,7 @@ def timeseries_plot(data=None, t=None):
     plt.show()
 
 
-def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True, cluster = True):
+def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True, cluster = True, title = ''):
     '''
         Plot single data frames.
 
@@ -116,8 +116,7 @@ def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=No
     if not key is None and not cluster:
         ax.text(0.0, 1.02, key, transform=ax.transAxes, fontdict=dict(color="black", size=14))
     else:
-        ax.text(0.0, 1.02, r'Distribution of '+str(levels)+' clusters', transform=ax.transAxes, fontdict=dict(color="black", size=14))
-
+        ax.text(0.0, 1.02, title, transform=ax.transAxes, fontdict=dict(color="black", size=14))
     plt.show()
 
 
@@ -466,7 +465,7 @@ class SateliteTimeSeries(TimeSeries):
     '''
 
     def __init__(self, satData):
-        from read_satelite_data import SateliteData
+        from satellite import SateliteData
         data = [satData.data, satData.RefSet.data]
         lons = [satData.lons, satData.RefSet.lons]
         lats = [satData.lats, satData.RefSet.lats]
@@ -556,13 +555,13 @@ def main():
     #lats = None
 
     # Plot a certain time step
-    timeStep = 3700
-    #timeStep = 3890
+    timeStep = 881
+    #timeStep = 4168
     lons_lats = np.zeros(data[0][0].shape + (2,))
     lons_lats[:,:,0], lons_lats[:,:,1] = np.meshgrid(lons,lats)
     
-    geographic_plot(data[1][timeStep,:,:], lons_lats=lons_lats, levels=50, key = r'$O_2$',\
-       unit=units[1], date = d[timeStep], minVal=210, maxVal=350, adjustBorder=True)
+    geographic_plot(np.mean(data[3][timeStep:timeStep+30,:,:], axis = 0), lons_lats=lons_lats, levels=50, key = r'$PO_4$',
+       unit=r'$\frac{mmol}{m^3}$', date = None, minVal=0, maxVal=17.5, adjustBorder=True, cluster = False)
 
 
     #max_data_value = [1, 1, 1, 1]
