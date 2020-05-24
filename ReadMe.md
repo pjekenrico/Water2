@@ -36,6 +36,9 @@ Original code provided, used for data exploration.
 ## read_satellite_data.py
 Code used for the analysis of the satellite data.
 
+## ripser.py
+Code used for topological data analysis (TDA)
+
 ## save_data.py
 Code used for saving the provided data in a numpy matrix format.
 
