@@ -4,7 +4,7 @@ from clustering import average_data, timestep_clustering, sort_clusters, cluster
 from visualization import geographic_plot, timeseries_plot, timeClustersVisualization
 import matplotlib.pyplot as plt
 from itertools import compress
-from silhouette import silhouette_plot
+from validation import silhouette_plot
 import pickle
 
 
@@ -17,6 +17,8 @@ def generate_yearly_data():
     av_matrix = average_data(matrix=matrix, delta_t=366)
     np.savez_compressed('av_model_dataYearly.npz', matrix=av_matrix)
 
+    del matrix
+
     return av_matrix
 
 
@@ -27,6 +29,8 @@ def region_calculation(n_regions=4, show_silhouette=True):
     n_regions:          number of regions
     show_silhouette:    default True
     '''
+
+    # Loading data
     try:
         with np.load('av_model_dataYearly.npz') as av_m:
             av_matrix = av_m['matrix']
@@ -36,6 +40,7 @@ def region_calculation(n_regions=4, show_silhouette=True):
     with np.load('lons_lats.npz') as ll:
         lons_lats = ll['lons_lats']
 
+    # Running clustering algorithms
     labels = np.full(av_matrix.shape[:-1], np.nan)
     silhouette_scores = np.full(av_matrix.shape[0], np.nan)
     for i in range(av_matrix.shape[0]):
@@ -46,12 +51,16 @@ def region_calculation(n_regions=4, show_silhouette=True):
 
     region_labels = np.full(labels.shape[1:], np.nan)
 
+    # Computing regions
     for i in range(region_labels.shape[0]):
         for j in range(region_labels.shape[1]):
             region_labels[i, j] = stats.mode(labels[:, i, j])[0]
 
+    # Plotting results
     geographic_plot(data=region_labels,
                     lons_lats=lons_lats, levels=n_regions-1)
+
+    # Plot silhouette scores
     print(silhouette_scores)
 
     print('Silhouette Average: ', np.mean(silhouette_scores))
@@ -64,7 +73,7 @@ def region_calculation(n_regions=4, show_silhouette=True):
 
 def average_by_region(matrix=None, chemical=0, r_labels=None, n_regions=4):
     '''
-    Generates the data of a chemical taking average by region (see region_calculation)
+    Generates the data for a single chemical taking average by region (see region_calculation)
 
     matrix:     data matrix
     chemical:   0: CHL
@@ -89,6 +98,7 @@ def average_by_region(matrix=None, chemical=0, r_labels=None, n_regions=4):
     return data
 
 
+# Example application of the above functions
 def main():
     n_regions = 4
 
@@ -108,45 +118,44 @@ def main():
         dates = pickle.load(fp)
     print('Finished Fetching Data')
 
-    print(av_matrix.shape)
-
     # Clustering parameters
     mode = 'kmeans'
-    n_clusters = 4
+    n_clusters = [2, 3, 4] # Comparing results with 2, 3, and 4 temporal clusters
 
     data = []
     s_avg = []
 
+    # Keeping relevant dates
+    new_d = []
+    for i in range(int(len(dates)/30.4325)):
+        new_d.append(dates[int(i * 30.4325)])
+
     # Clustering with regional average by chemical
     for i in range(4):
-        data.append(average_by_region(matrix=av_matrix, chemical=i,
-                                      r_labels=region_labels, n_regions=n_regions))
-        # Clustering
-        if mode == 'kmeans':
-            clustered_data = clustering(
-                data=data[i], n_clusters=n_clusters, mode='kmeans', verbose=False)
-        elif mode == 'hierarchical':
-            clustered_data = clustering(
-                data=data[i], n_clusters=n_clusters, mode='hierarchical', verbose=False)
+        for n in n_clusters:
+            data.append(average_by_region(matrix=av_matrix, chemical=i,
+                                          r_labels=region_labels, n_regions=n_regions))
 
-        print("The " + str(n_clusters) + " cluster sizes are:")
-        cluster_sizes = [len(list(compress(data[i], clustered_data.labels_ == cluster)))
-                         for cluster in range(n_clusters)]
-        print(cluster_sizes)
+            # Clustering
+            if mode == 'kmeans':
+                clustered_data = clustering(
+                    data=data[i], n_clusters=n, mode='kmeans', verbose=False)
+            elif mode == 'hierarchical':
+                clustered_data = clustering(
+                    data=data[i], n_clusters=n, mode='hierarchical', verbose=False)
 
-        s_avg.append(silhouette_plot(labels=clustered_data.labels_,
-                                     data=data[i], plotGraph=False, n_clusters=n_clusters))
+            print("The " + str(n) + " cluster sizes are:")
+            cluster_sizes = [len(list(compress(data[i], clustered_data.labels_ == cluster)))
+                             for cluster in range(n)]
+            print(cluster_sizes)
 
-        # Keeping relevant dates
-        # new_d = []
-        # for i in range(len(dates)):
-        #     if i % 30 == 0:
-        #         new_d.append(dates[i])
+            s_avg.append(silhouette_plot(labels=clustered_data.labels_,
+                                         data=data[i], plotGraph=False, n_clusters=n))
 
-        # new_d.pop()
-
-        timeClustersVisualization(labels=clustered_data.labels_, data_points_per_year=12, n_clusters=n_clusters)
-        # timeseries_plot(data=clustered_data.labels_, t=new_d)
+            # Two different ways of visualizing the results
+            timeseries_plot(data=clustered_data.labels_, t=new_d)
+            timeClustersVisualization(
+                labels=clustered_data.labels_, data_points_per_year=12, n_clusters=n)
     print(s_avg)
 
 

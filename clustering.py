@@ -8,7 +8,7 @@ from itertools import compress
 import sys, os
 import pickle
 from visualization import TimeSeries, geographic_plot
-from silhouette import silhouette_plot, elbowPlot, plot_dendrogram
+from validation import silhouette_plot, elbowPlot, plot_dendrogram
 
 
 def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clusters=10, dbscan_eps=3, metric='euclidean', silhouette=False, verbose=True):
@@ -40,6 +40,7 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
             return
         else:
             data = matrix[:, :, :, chemical]
+
     # Straighten-out data for clustering
     straight_data = []
     coordinates = []
@@ -81,6 +82,8 @@ def single_chemical_clustering(matrix=None, chemical=None, mode='kmeans', n_clus
                    ] = clustered_data.labels_[i]
             straight_labels[i] = clustered_data.labels_[i]
 
+    # Compute silhouette scores
+    s_avg = 0
     s_avg = silhouette_plot(labels=straight_labels, data=straight_data,
                             plotGraph=silhouette, n_clusters=n_clusters)
 
@@ -164,6 +167,8 @@ def timestep_clustering(matrix=None, timestep=None, mode='kmeans', n_clusters=10
                    ] = clustered_data.labels_[i]
             straight_labels[i] = clustered_data.labels_[i]
 
+    # Compute silhouette scores
+    s_avg = 0
     s_avg = silhouette_plot(labels=straight_labels, data=straight_data,
                             plotGraph=silhouette, n_clusters=n_clusters)
 
@@ -203,7 +208,6 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
     else:
         n_chemicals = sum(np.multiply(chemicals, 1))
         straight_data = []
-        # np.full((matrix.shape[0], n_chemicals), np.nan)
         for t in range(matrix.shape[0]):
             d = []
             for chem in range(matrix.shape[3]):
@@ -240,6 +244,7 @@ def timewise_clustering(matrix=None, location=None, chemicals=[True, True, True,
             if clustered_data.labels_[i] >= 0:
                 labels[i] = clustered_data.labels_[i]
 
+        # Compute silhouette scores
         s_avg = silhouette_plot(labels=labels, data=straight_data,
                                 plotGraph=silhouette, n_clusters=n_clusters)
     else:
@@ -292,7 +297,7 @@ def average_data(matrix=None, delta_t=10):
     delta_t:    time period over which to average the data
     '''
     m_shape = len(matrix.shape)
-    n_chemicals = matrix.shape[-1] if m_shape==4 else 0
+    n_chemicals = matrix.shape[-1] if m_shape == 4 else 0
     time_steps = int(matrix.shape[0]/delta_t)
     if m_shape == 4:
         data = np.full(
@@ -366,6 +371,12 @@ def average_data(matrix=None, delta_t=10):
 
 
 def sort_clusters(labels=None, cluster_sizes=[]):
+    '''
+    Reorders the clusters by cluster size. After sorting the 0th cluster corresponds to the smallest cluster
+
+    labels:         labels obtain by previous clustering
+    cluster_sizes:  sizes of the clusters
+    '''
     n_clusters = len(cluster_sizes)
     new_labels = []
     for i in range(n_clusters):
@@ -415,7 +426,7 @@ def clustervalues(labels, lons_lats, d, lon = 8.6865, lat = 54.025, chem = ['no3
     latEstuary = findClose(lons_lats[:,0,1], 54.025, end = 'min')
     lonEstuary = findClose(lons_lats[0,:,0], 8.6865, end = 'min')
 
-    label_estuary = labels[latEstuary,lonEstuary]
+    label_estuary = labels[latEstuary, lonEstuary]
 
     n = len(d)
     no3 = list()
@@ -441,7 +452,7 @@ def clustervalues(labels, lons_lats, d, lon = 8.6865, lat = 54.025, chem = ['no3
         meanNO3[k] = np.nanmean(tmp[idx])
         tmp = rawPO4[k]
         meanPO4[k] = np.nanmean(tmp[idx])
-    
+
     datesIdx.pop(-1)
     datesIdx = np.array(datesIdx)
 
@@ -475,6 +486,7 @@ def clustervalues(labels, lons_lats, d, lon = 8.6865, lat = 54.025, chem = ['no3
     plt.show()
 
 
+# Example application of the above functions
 def main():
     # Loading already saved data (see save_data.py)
     print("Fetching data...")
@@ -484,24 +496,25 @@ def main():
         d = pickle.load(fp)
     with np.load('lons_lats.npz') as ll:
         lons_lats = ll['lons_lats']
-    # Average the data through time (if needed)
-    #av_matrix = average_data(matrix=matrix, delta_t=30.4325)
-    #np.savez_compressed('av_model_data30.npz', matrix=av_matrix)
-    #with np.load('av_model_data30.npz') as av_m:
-    #    av_matrix = av_m['matrix']
+
+    # Average the data through time (if needed) and save it
+    av_matrix = average_data(matrix=matrix, delta_t=30.4325)
+    np.savez_compressed('av_model_data30.npz', matrix=av_matrix)
+
+    # Load average matrix if already saved
+    with np.load('av_model_data30.npz') as av_m:
+        av_matrix = av_m['matrix']
     print("Finished fetching data")
 
     # Clustering variables
     tstep = 50
     chem = 1
     n_clusters = 4
-    dbscan_eps = 4
-
-    # r_labels = region_clusters(data=av_matrix, lons_lats=lons_lats, n_clusters=4)
-
-    # Uncomment one of the following to cluster
+    dbscan_eps = 0.8
 
     # Clustering with kmeans
+    cl, labels, cs, s_avg = timestep_clustering(
+        matrix=av_matrix, timestep=tstep, mode="kmeans", silhouette=True)
 
     # cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=k, silhouette=False)
 

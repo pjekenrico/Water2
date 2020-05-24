@@ -7,12 +7,12 @@ from scipy.cluster.hierarchy import dendrogram
 
 def silhouette_plot(labels=None, data=None, name_model='', plotGraph=False, n_clusters=0):
     '''Returns the silhouette metric and the respective graph (if required):
-    Can receive five parameters:
-        - labels: Labels of clustering model
-        - data: data where the model is applied
-        - plotGraph: (default False)
-        - name_model: Name of the evaluated model
-        - n_clusters: number of clusters
+    
+    labels:     Labels of clustering model
+    data:       data where the model is applied
+    plotGraph:  (default False)
+    name_model: Name of the evaluated model
+    n_clusters: number of clusters
 
     s_avg  : Average silhouette metric for the clustering model
     '''
@@ -69,6 +69,9 @@ def silhouette_plot(labels=None, data=None, name_model='', plotGraph=False, n_cl
 
 
 def elbowPlot(inertiaVals, n_cluster):
+    '''
+    Plots the values of the inertis computed by clustering, to be analysed through the elbow method
+    '''
 
     if isinstance(inertiaVals,list):
         inertia = np.array(inertiaVals)
@@ -92,8 +95,11 @@ def elbowPlot(inertiaVals, n_cluster):
 
 
 def plot_dendrogram(model, **kwargs):
-    # Create linkage matrix and then plot the dendrogram
+    '''
+    Plots the dendogram obtained by hierarchical clustering
+    '''
 
+    # Create linkage matrix and then plot the dendrogram
     # create the counts of samples under each node
     counts = np.zeros(model.children_.shape[0])
     n_samples = len(model.labels_)

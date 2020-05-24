@@ -1,5 +1,4 @@
-﻿# -*- coding: utf-8 -*-
-import os
+﻿import os
 import netCDF4
 import string
 from netCDF4 import Dataset
@@ -15,6 +14,8 @@ from matplotlib import cm
 
 def timeseries_plot(data=None, t=None):
     '''
+    Plots the data through time
+
     data:   labels
     t:      dates
     '''
@@ -32,24 +33,21 @@ def timeseries_plot(data=None, t=None):
 
 def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True, cluster = True, title = ''):
     '''
-        Plot single data frames.
+    Plot single data frames.
 
-        param data: 2D numpy array
-        param lons_lats: Array of the shape [:,:,2] containing the longitudes in the first layer and the
-        latitudes on the second layer.
-        param key: String that denotes the quantity to be displayed e.g. "$NO_3$"
-        param unit: (String) Unit of the displayed quantity e.g. "$mmol/m^3$"
-        param date: (datetime) Date in datetime format (will be casted to string...)
-        param minVal: (float) Lower bound for the value range. Lower values are capped at minVal.
-        param maxVal: (float) Uower bound for the value range. Larger values are capped at maxVal.
+    data:       2D numpy array
+    lons_lats:  Array of the shape [:,:,2] containing the longitudes in the first layer and the
+                latitudes on the second layer.
+    key:        (String) that denotes the quantity to be displayed e.g. "$NO_3$"
+    unit:       (String) Unit of the displayed quantity e.g. "$mmol/m^3$"
+    date:       (datetime) Date in datetime format (will be casted to string...)
+    minVal:     (float) Lower bound for the value range. Lower values are capped at minVal.
+    maxVal:     (float) Uower bound for the value range. Larger values are capped at maxVal.
     '''
 
     # Plotting the clusters
     fig = plt.figure(figsize=(10, 6))
     ax = plt.axes(projection=ccrs.Mercator())
-
-    # Put a background image on for nice sea rendering.
-    # ax.stock_img()
 
     # High resolution map features
     ax.coastlines(resolution='10m')
@@ -75,8 +73,8 @@ def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=No
             (data < minVal) + maxVal*(data > maxVal)
 
     try:
-        data[0,0] = minVal
-        data[0,1] = maxVal
+        data[0, 0] = minVal
+        data[0, 1] = maxVal
     except:
         pass
 
@@ -84,7 +82,6 @@ def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=No
         cmap = cm.nipy_spectral
     else:
         cmap = cm.rainbow
-
 
     # Plot data
     cs = plt.contourf(lons_lats[:, :, 0], lons_lats[:, :, 1], data, levels,
@@ -121,12 +118,12 @@ def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=No
 
 
 def clean_up_artists(axis, artist_list):
-    """
+    '''
     Try to remove the artists stored in the artist list belonging to the 'axis'.
-     axis: clean artists belonging to these axis
-     artist_list: list of artist to remove
-    return: nothing
-    """
+
+    axis:           clean artists belonging to these axis
+    artist_list:    list of artist to remove
+    '''
     for artist in artist_list:
         try:
             # fist attempt: try to remove collection of contours for instance
@@ -151,7 +148,9 @@ def clean_up_artists(axis, artist_list):
 
 
 def trim_axs(axs, N):
-    """Little helper to reshape the axis list to have correct length..."""
+    '''
+    Little helper to reshape the axis list to have correct length
+    '''
     try:
         axs = axs.flat
         for ax in axs[N:]:
@@ -163,24 +162,24 @@ def trim_axs(axs, N):
 
 def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,
                 number_of_contour_levels, v_min, v_max, changed_artists, d, keys, units):
-    """
+    '''
     Update the the contour plots of the time step 'frame_index'
 
-     frame_index: Integer required by animation running from 0 to n_frames -1.
-    For initialisation of the plot call 'update_plot' with frame_index = -1
-     data_list: List with the 3D data (time x 2D data) per subplot
-     lons: Longitude degrees
-     lats: Latitude degrees
-     fig: Reference to the figure
-     axis: Reference to the list of axis with the axes per subplot
-     n_cols: Number of subplot in horizontal direction
-     n_rows: Number of subplot in vertical direction
-     number_of_contour_levels: Number of contour levels
-     v_min: Minimum global data value. If None take min(data) in the 2d dataset
-     v_max: Maximum global data value. If None take the largest value in the 2d data set
-     changed_artists: List of lists of artists which are updated between the time steps
-    return: Changed_artists list
-    """
+    frame_index:                Integer required by animation running from 0 to n_frames -1.
+                                For initialisation of the plot call 'update_plot' with frame_index = -1
+    data_list:                  List with the 3D data (time x 2D data) per subplot
+    lons:                       Longitude degrees
+    lats:                       Latitude degrees
+    fig:                        Reference to the figure
+    axis:                       Reference to the list of axis with the axes per subplot
+    n_cols:                     Number of subplot in horizontal direction
+    n_rows:                     Number of subplot in vertical direction
+    number_of_contour_levels:   Number of contour levels
+    v_min:                      Minimum global data value. If None take min(data) in the 2d dataset
+    v_max:                      Maximum global data value. If None take the largest value in the 2d data set
+    changed_artists:            List of lists of artists which are updated between the time steps
+    return:                     Changed_artists list
+    '''
 
     # Number of current subplot
     nr_subplot = 0
@@ -217,22 +216,6 @@ def update_plot(frame_index, data_list, lons, lats, fig, axis, n_cols, n_rows,
                                linestyle=':', facecolor='none', edgecolor='black')
                 ax.add_feature(cfeature.NaturalEarthFeature('physical', 'rivers_lake_centerlines', '10m'),
                                facecolor='none', edgecolor='blue')
-
-            # Gridlines require an update at every iteration and slow down the simulation a lot.
-            # Uncomment to have gridlines
-            # gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,\
-            #                    linewidth=1, color='gray', alpha=0.5, linestyle='--')
-            #gl.xformatter = LONGITUDE_FORMATTER
-            #gl.yformatter = LATITUDE_FORMATTER
-            #gl.xlabels_top = False
-            #gl.ylabels_right = False
-
-            # Remove redundant axes
-            # if i_row == n_rows-1:
-            #    gl.ylabels_left = False
-
-            # if j_col == 0:
-            #    gl.xlabels_bottom = False
 
             # Set value boundaries
             if v_min is None:
@@ -302,13 +285,13 @@ class TimeSeries():
     def __init__(self, data, lons=None, lats=None, keys=None, units=None, d=None):
         '''
         Load data for animation
-             data: List of masked arrays, where each one contains a certain quantity.
-             lons: Longitude coordinates as vector or matrix with same sized lats matrix.
-             lats: Latitude coordinates as vector or matrix with same sized lons matrix.
-             keys: Quantity label (Oxygen, Nitrate, Phosphate, ...).
-             units: Unit of the displayed quantity as a list of strings.
-             d: List of time date entries. Will be plotted after date on the animation.
-            return: nothing
+
+        data:   List of masked arrays, where each one contains a certain quantity.
+        lons:   Longitude coordinates as vector or matrix with same sized lats matrix.
+        lats:   Latitude coordinates as vector or matrix with same sized lons matrix.
+        keys:   Quantity label (Oxygen, Nitrate, Phosphate, ...).
+        units:  Unit of the displayed quantity as a list of strings.
+        d:      List of time date entries. Will be plotted after date on the animation.
         '''
         # Load content
         if isinstance(data, np.ndarray) and len(data.shape) == 4:
@@ -381,16 +364,15 @@ class TimeSeries():
                         max_data_value=None, min_data_value=None, start_frame=None, end_frame=None, skip_frames=None):
         '''
         Create animation with the data given at init
-            number_of_contour_levels: Number of colours/contour levels to be displayed
-            n_rows: Amount of subplots in a row
-            n_cols: Amount of subplots in a column
-            max_data_value: Maximal value of each plot e.g. [21, 380, 290, 18]
-            min_data_value: Minimal value of each plot e.g. [0, 180, 0, 0]
-            start_frame: Start from frame number e.g. 0
-            end_frame: Start from frame number e.g. len(labels[:,0,0])
-            skip_frames: Amount of frames -1 to skip between every displayed image e.g. 1 (no skipping)
 
-            return: nothing
+        number_of_contour_levels:   Number of colours/contour levels to be displayed
+        n_rows:                     Amount of subplots in a row
+        n_cols:                     Amount of subplots in a column
+        max_data_value:             Maximal value of each plot e.g. [21, 380, 290, 18]
+        min_data_value:             Minimal value of each plot e.g. [0, 180, 0, 0]
+        start_frame:                Start from frame number e.g. 0
+        end_frame:                  Start from frame number e.g. len(labels[:,0,0])
+        skip_frames:                Amount of frames -1 to skip between every displayed image e.g. 1 (no skipping)
         '''
 
         # Check on given input
@@ -445,9 +427,9 @@ class TimeSeries():
     def saveAnimation(self, fps=8, name='toLazytoName'):
         '''
         Save animation after computing it with createAnimation
-             fps: Amount of frames displayed each second in the video e.g. 10.
-             name: Name of the video. Is stored depending on the call path of the object.
-            return: nothing
+
+        fps:    Amount of frames displayed each second in the video e.g. 10.
+        name:   Name of the video. Is stored depending on the call path of the object.
         '''
         if not hasattr(self, 'ani'):
             print(
@@ -461,7 +443,7 @@ class TimeSeries():
 
 class SateliteTimeSeries(TimeSeries):
     '''
-        Make an animation to compare satelite and normal data.
+    Make an animation to compare satelite and normal data.
     '''
 
     def __init__(self, satData):
@@ -483,27 +465,24 @@ def timeClustersVisualization(labels=None, data_points_per_year=12, n_clusters=4
     for i in range(len(labels)):
         label_matrix[i % data_points_per_year, int(labels[i])] += 1
 
-    f, subplts = plt.subplots(n_clusters, 1, figsize = (10,6), sharex = True, sharey = True)
+    f, subplts = plt.subplots(n_clusters, 1, figsize=(
+        10, 6), sharex=True, sharey=True)
 
-    year_range = range(0, data_points_per_year, 1)
+    year_range = range(1, data_points_per_year + 1, 1)
     for i in range(n_clusters):
         subplts[i].plot(year_range, label_matrix[:, i])
         subplts[i].set_xlim([np.min(year_range), np.max(year_range)])
-        subplts[i].grid('on', axis = 'x')
+        subplts[i].grid(axis='x')
+        subplts[i].set_title('Cluster ' + str(i + 1))
+        subplts[i].set_ylabel('Frequency')
 
+    subplts[-1].set_xlabel('Month of the year')
     plt.tight_layout()
     plt.show()
     return
 
 
-
 # Example on how to use the visualization on raw data
-# When calling the class from a separate file import the class as:
-#
-# from visualization import TimeSeries
-#
-
-
 def main():
 
     datasets = []
@@ -524,7 +503,8 @@ def main():
     keys.append(list(datasets[1].variables)[0])
     keys.append(list(datasets[2].variables)[0])
     keys.append(list(datasets[3].variables)[1])
-    units = [r'$\frac{mg}{m^3}$', r'$\frac{mmol}{m^3}$', r'$\frac{mmol}{m^3}$', r'$\frac{mmol}{m^3}$']
+    units = [r'$\frac{mg}{m^3}$', r'$\frac{mmol}{m^3}$',
+             r'$\frac{mmol}{m^3}$', r'$\frac{mmol}{m^3}$']
 
     # Read the measurment dates
     time = datasets[0].variables['time']
@@ -547,25 +527,13 @@ def main():
         data.append(np.squeeze(datasets[i].variables[keys[i]][:]))
         datasets[i].close()
 
-    # Or load precomputed data
-    # with np.load('model_data.npz') as m:
-    #    data = m['matrix']
-    # with np.load('lons_lats.npz') as ll:
-    #    lons = ll['lons_lats']
-    #lats = None
-
     # Plot a certain time step
-    timeStep = 881
-    #timeStep = 4168
+    timeStep = 3700
     lons_lats = np.zeros(data[0][0].shape + (2,))
-    lons_lats[:,:,0], lons_lats[:,:,1] = np.meshgrid(lons,lats)
-    
-    geographic_plot(np.mean(data[3][timeStep:timeStep+30,:,:], axis = 0), lons_lats=lons_lats, levels=50, key = r'$PO_4$',
-       unit=r'$\frac{mmol}{m^3}$', date = None, minVal=0, maxVal=17.5, adjustBorder=True, cluster = False)
+    lons_lats[:, :, 0], lons_lats[:, :, 1] = np.meshgrid(lons, lats)
 
-
-    #max_data_value = [1, 1, 1, 1]
-    #min_data_value = [0, 0, 0, 0]
+    geographic_plot(data[1][timeStep, :, :], lons_lats=lons_lats, levels=50, key=r'$O_2$',
+                    unit=units[1], date=d[timeStep], minVal=210, maxVal=350, adjustBorder=True)
 
     # Read data
     myAnimation = TimeSeries(data, lons=lons, lats=lats,
