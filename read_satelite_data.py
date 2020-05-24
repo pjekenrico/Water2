@@ -1,4 +1,6 @@
-﻿import netCDF4, os, matplotlib
+﻿import netCDF4
+import os
+import matplotlib
 from netCDF4 import Dataset
 import numpy as np
 import datetime as dt
@@ -62,9 +64,9 @@ def findClose(vector, reference, end='min'):
     Else, if the 'max' is used it returns the index to the next bigger entry in vector looking from above:
         vector = [1,2,3,4,5,6], reference = 2.5 -> i = 3
 
-    vector: Iterable array or list of numbers.
-    reference: Reference value.
-    end: String stating whether the head of the vector is sought (lower match) or the tail.
+    vector:     Iterable array or list of numbers.
+    reference:  Reference value.
+    end:        String stating whether the head of the vector is sought (lower match) or the tail.
     '''
     if end == 'min' or end == 'Min':
         for counter, value in enumerate(vector):
@@ -210,48 +212,46 @@ class SateliteData(DataSet):
         lats, lons = np.meshgrid(self.lons, self.lats)
         latsRef, lonsRef = np.meshgrid(self.RefSet.lons, self.RefSet.lats)
 
-        newMask = griddata((lonsRef.flatten(), latsRef.flatten()), self.RefSet.data[0].mask.flatten(), (lons, lats), method='nearest')
+        newMask = griddata((lonsRef.flatten(), latsRef.flatten(
+        )), self.RefSet.data[0].mask.flatten(), (lons, lats), method='nearest')
 
         for k in range(len(self.data)):
             self.data[k].mask = newMask | self.data[k].mask
 
+
+# Example application of the functions and classes above
 def __main__():
-    chl_path = 'Andrea/dataset-CHL-satellite-daily.nc'
-    spm_path = 'Andrea/dataset-SPM-satellite-monthly.nc'
+    # Load data
+    chl_path = '/dataset-CHL-satellite-daily.nc'
+    spm_path = '/dataset-SPM-satellite-monthly.nc'
 
     sat1 = SateliteData(chl_path)
 
-    #sat2 = SateliteData('dataset-SPM-satellite-monthly.nc')
-
     timestep = -1
-    #max_data_value = [0.5*np.nanmax(sat1.data[timestep,:,:]), 0.8*np.nanmax(sat1.RefSet.data[timestep,:,:])]
-    #min_data_value = [None, None]
 
     max_data_value = [3, 3]
     min_data_value = [0, 0]
 
-    # Create animation
-    #myAnimation = SateliteTimeSeries(sat1)
-    #myAnimation.createAnimation(number_of_contour_levels = 20, n_rows = 1, n_cols = 2,\
-    #    max_data_value = max_data_value, min_data_value = min_data_value, start_frame = 100,\
-    #    end_frame = 100, skip_frames = 100)
+    # Creating and saving animation
+    myAnimation = SateliteTimeSeries(sat1)
+    myAnimation.createAnimation(number_of_contour_levels=20, n_rows=1, n_cols=2,
+                                max_data_value=max_data_value, min_data_value=min_data_value, start_frame=100,
+                                end_frame=100, skip_frames=100)
 
-    # myAnimation.saveAnimation(fps = 8, name = 'toLazytoName2')
+    myAnimation.saveAnimation(fps=8, name='toLazytoName2')
 
     lons, lats = np.meshgrid(sat1.lons, sat1.lats)
-    lons_lats = np.zeros((lons.shape[0],lons.shape[1],2))
-    lons_lats[:,:,0] = lons
-    lons_lats[:,:,1] = lats
+    lons_lats = np.zeros((lons.shape[0], lons.shape[1], 2))
+    lons_lats[:, :, 0] = lons
+    lons_lats[:, :, 1] = lats
 
-    
+    geographic_plot(sat1.data[timestep, :, :], lons_lats, key=r'Chlorophyll a - Satelite data',
+                    unit=r'$\frac{mg}{m^3}$', date=sat1.times[timestep], minVal=min_data_value[0],
+                    maxVal=max_data_value[0], adjustBorder=True, levels=50)
 
-    geographic_plot(sat1.data[timestep,:,:], lons_lats, key = r'Chlorophyll a - Satelite data',\
-        unit = r'$\frac{mg}{m^3}$', date = sat1.times[timestep], minVal = min_data_value[0],\
-        maxVal = max_data_value[0], adjustBorder = True, levels = 50)
-
-    geographic_plot(sat1.RefSet.data[timestep,:,:], lons_lats, key = r'Chlorophyll a - Model data',\
-        unit = r'$\frac{mg}{m^3}$', date = sat1.RefSet.times[timestep], minVal = min_data_value[1],\
-        maxVal = max_data_value[1], adjustBorder = True, levels = 50)
+    geographic_plot(sat1.RefSet.data[timestep, :, :], lons_lats, key=r'Chlorophyll a - Model data',
+                    unit=r'$\frac{mg}{m^3}$', date=sat1.RefSet.times[timestep], minVal=min_data_value[1],
+                    maxVal=max_data_value[1], adjustBorder=True, levels=50)
 
 
 if __name__ == "__main__":
