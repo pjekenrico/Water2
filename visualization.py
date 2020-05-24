@@ -31,7 +31,7 @@ def timeseries_plot(data=None, t=None):
     plt.show()
 
 
-def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True, cluster=True):
+def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=None, minVal=None, maxVal=None, adjustBorder=True, cluster = True, title = ''):
     '''
     Plot single data frames.
 
@@ -110,6 +110,10 @@ def geographic_plot(data, lons_lats=None, levels=4, key=None, unit=None, date=No
         if not unit is None:
             cbar.ax.set_ylabel(unit, fontdict=dict(color="black", size=16))
 
+    if not key is None and not cluster:
+        ax.text(0.0, 1.02, key, transform=ax.transAxes, fontdict=dict(color="black", size=14))
+    else:
+        ax.text(0.0, 1.02, title, transform=ax.transAxes, fontdict=dict(color="black", size=14))
     plt.show()
 
 
@@ -443,7 +447,7 @@ class SateliteTimeSeries(TimeSeries):
     '''
 
     def __init__(self, satData):
-        from read_satelite_data import SateliteData
+        from satellite import SateliteData
         data = [satData.data, satData.RefSet.data]
         lons = [satData.lons, satData.RefSet.lons]
         lats = [satData.lats, satData.RefSet.lats]

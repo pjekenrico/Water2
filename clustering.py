@@ -5,7 +5,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from itertools import compress
-import sys
+import sys, os
 import pickle
 from visualization import TimeSeries, geographic_plot
 from validation import silhouette_plot, elbowPlot, plot_dendrogram
@@ -392,7 +392,7 @@ def sort_clusters(labels=None, cluster_sizes=[]):
     return labels - n_clusters
 
 
-def clustervalues(matrix, labels, lons_lats, d, lon=8.6865, lat=54.025, chem=['no3', 'po4']):
+def clustervalues(labels, lons_lats, d, lon = 8.6865, lat = 54.025, chem = ['no3','po4']):
     '''
     Function to plot the yearly mean of two cuantities of a certain cluster. The preset values correspong
     to the river estuary of the Elba, Weser and Rhine rivers.
@@ -405,20 +405,26 @@ def clustervalues(matrix, labels, lons_lats, d, lon=8.6865, lat=54.025, chem=['n
     chems:      The chemicals that shall be plotted e.g. ['no3','po4']
     '''
     chems = list()
+    matrix = list()
+    from satellite import findClose, readSatData
 
     for c in chem:
         if c == 'CHL' or c == 'chl' or c == 'Chl':
-            chems.append((0, r'$Chl~[\frac{mg}{m^3}]$'))
+            chems.append(r'$Chl~[\frac{mg}{m^3}]$')
+            matrix.append(readSatData(os.path.abspath('MetO-NWS-BIO-dm-CHL.nc'))[0])
         elif c == 'O2' or c == 'o2' or c == 'O_2':
-            chems.append((1, r'$O_2~[\frac{mmol}{m^3}]$'))
+            chems.append(r'$O_2~[\frac{mmol}{m^3}]$')
+            matrix.append(readSatData(os.path.abspath('MetO-NWS-BIO-dm-DOXY.nc'))[0])
         elif c == 'NO3' or c == 'no3' or c == 'no_3':
-            chems.append((2, r'$NO_3~[\frac{mmol}{m^3}]$'))
+            chems.append(r'$NO_3~[\frac{mmol}{m^3}]$')
+            matrix.append(readSatData(os.path.abspath('MetO-NWS-BIO-dm-NITR.nc'))[0])
         elif c == 'PO4' or c == 'po4' or c == 'po_4':
-            chems.append((3, r'$PO_4~[\frac{mmol}{m^3}]$'))
+            chems.append(r'$PO_4~[\frac{mmol}{m^3}]$')
+            matrix.append(readSatData(os.path.abspath('MetO-NWS-BIO-dm-PHOS.nc'))[0])
 
-    from read_satelite_data import findClose
-    latEstuary = findClose(lons_lats[:, 0, 1], 54.025, end='min')
-    lonEstuary = findClose(lons_lats[0, :, 0], 8.6865, end='min')
+    
+    latEstuary = findClose(lons_lats[:,0,1], 54.025, end = 'min')
+    lonEstuary = findClose(lons_lats[0,:,0], 8.6865, end = 'min')
 
     label_estuary = labels[latEstuary, lonEstuary]
 
@@ -430,8 +436,8 @@ def clustervalues(matrix, labels, lons_lats, d, lon=8.6865, lat=54.025, chem=['n
     years = np.array([date.year for date in d])
     idx = np.where(labels == label_estuary)
 
-    rawNO3 = matrix[:, :, :, chems[0][0]]
-    rawPO4 = matrix[:, :, :, chems[1][0]]
+    rawNO3 = matrix[0]
+    rawPO4 = matrix[1]
     meanNO3 = np.zeros(n)
     meanPO4 = np.zeros(n)
 
@@ -457,11 +463,11 @@ def clustervalues(matrix, labels, lons_lats, d, lon=8.6865, lat=54.025, chem=['n
     no3 = np.array(no3)
     po4 = np.array(po4)
 
-    fig, ax1 = plt.subplots()
+    fig, ax1 = plt.subplots(figsize = (8,6))
 
     color = 'tab:red'
-    ax1.set_xlabel('Year', fontdict=dict(size=12))
-    ax1.set_ylabel(chems[0][1], color=color, fontdict=dict(size=12))
+    ax1.set_xlabel('Year', fontdict=dict(size=14))
+    ax1.set_ylabel(chems[0], color=color, fontdict=dict(size=14))
     ax1.plot(dates, no3, color=color)
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.set_xticks(dates[0::2])
@@ -471,12 +477,10 @@ def clustervalues(matrix, labels, lons_lats, d, lon=8.6865, lat=54.025, chem=['n
     ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
     color = 'tab:blue'
-    ax2.set_ylabel(chems[1][1], color=color, fontdict=dict(
-        size=12))  # we already handled the x-label with ax1
-    ax2.plot(dates, po4, color=color)
-    ax2.tick_params(axis='y', labelcolor=color)
-    ax2.set_title("Mean annual concentrations in the estuary cluster",
-                  fontdict=dict(color="black", size=12))
+    ax2.set_ylabel(chems[1], color=color, fontdict=dict(size=14))  # we already handled the x-label with ax1
+    ax2.plot(dates, po4, color = color)
+    ax2.tick_params(axis = 'y', labelcolor = color)
+    ax2.set_title("Mean annual concentrations in the estuary cluster", fontdict=dict(color="black", size=14))
 
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
     plt.show()
@@ -486,8 +490,8 @@ def clustervalues(matrix, labels, lons_lats, d, lon=8.6865, lat=54.025, chem=['n
 def main():
     # Loading already saved data (see save_data.py)
     print("Fetching data...")
-    with np.load('model_data.npz') as m:
-        matrix = m['matrix']
+    #with np.load('model_data.npz') as m:
+    #    matrix = m['matrix']
     with open("datetimes.txt", "rb") as fp:   # Unpickling
         d = pickle.load(fp)
     with np.load('lons_lats.npz') as ll:
@@ -512,8 +516,78 @@ def main():
     cl, labels, cs, s_avg = timestep_clustering(
         matrix=av_matrix, timestep=tstep, mode="kmeans", silhouette=True)
 
-    print(s_avg)
-    geographic_plot(data=labels, lons_lats=lons_lats, levels=n_clusters - 1)
+    # cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=k, silhouette=False)
+
+    # cl, labels, cs, s_avg = single_chemical_clustering(
+    #     matrix=av_matrix, chemical=chem, mode="kmeans", n_clusters=n_clusters, silhouette=True)
+
+    # clusterNumbers = np.arange(2, 15, 1)
+    # inertias = list()
+    # silhouette = list()
+
+    # for k in clusterNumbers:
+    #     cl, labels, cs, s_avg = timestep_clustering(
+    #         matrix=av_matrix, timestep=0, mode="kmeans", n_clusters=k, silhouette=False)
+    #     inertias.append(cl.inertia_)
+    #     silhouette.append(s_avg)
+
+    # plt.plot(clusterNumbers, silhouette)
+    # plt.show()
+
+    # elbowPlot(inertiaVals=inertias, n_cluster=clusterNumbers)
+
+    # Clustering with hierarchical/agglomeratative
+    #cl, labels, cs, s_avg = timewise_clustering(matrix=av_matrix, mode="hierarchical", n_clusters=None, silhouette=False, distance_threshold=0)
+
+    #plot_dendrogram(cl, truncate_mode='level', p=5)
+    from double_clustering import region_calculation
+    try:
+        with np.load('region_labels.npz') as r_labels:
+            region_labels = r_labels['matrix']
+    except:
+        region_labels = region_calculation(
+            n_regions=4, show_silhouette=True)
+        np.savez_compressed('region_labels.npz', matrix=region_labels)
+
+    clustervalues(labels = region_labels, lons_lats = lons_lats, d = d, lon = 8.6865, lat = 54.025, chem = ['no3','po4'])
+
+    #cl, labels, cs, s_avg = timestep_clustering(matrix=av_matrix, timestep=tstep, mode="kmeans", n_clusters=n_clusters, silhouette=True)
+
+    # plot_dendrogram(cl, truncate_mode='level', p=5)
+    geographic_plot(data=region_labels, lons_lats = lons_lats, levels = 4, minVal = 0, maxVal = 4, adjustBorder = False)
+
+    # cl, labels, cs, s_avg = single_chemical_clustering(matrix=matrix, chemical=chem, mode="hierarchical", n_clusters=n_clusters)
+
+    # Clustering with dbscan (kinda shit)
+    # cl, labels, cs, s_avg = timestep_clustering(matrix=matrix, timestep=tstep, mode="dbscan", dbscan_eps=dbscan_eps)
+    # cl, labels, cs, s_avg = single_chemical_clustering(
+    #     matrix=matrix, chemical=chem, mode="dbscan", dbscan_eps=dbscan_eps)
+
+
+
+    # Display and Save Animation
+    # ts = TimeSeries(labels, lons_lats[:, :, 0], lons_lats[:, :, 1])
+    # ts.createAnimation(max_data_value=[5, 5, 5, 5], min_data_value=[-1, -1, -1, -1], n_rows=1, n_cols=1)
+    # ts.saveAnimation(name='clusters_Yearly_av')
+
+
+
+    # Plot cluster labels geographically
+
+    # geographic_plot(data=data, lons_lats=lons_lats, key = '', unit = '', date = '', minVal = np.nanmin(data), maxVal = np.nanmax(data), adjustBorder = False)
+
+    # Plot cluster labels through time
+    # cl, labels, s = timewise_clustering(matrix=av_matrix, n_clusters=n_clusters)
+
+    # # Keeping relevant dates
+    # new_d = []
+    # for i in range(len(d)):
+    #     if i % 366 == 0:
+    #         new_d.append(d[i])
+
+    # new_d.pop()
+
+    # timeseries_plot(data=labels, t=new_d)
 
 
 if __name__ == "__main__":
